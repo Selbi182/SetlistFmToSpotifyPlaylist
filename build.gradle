@@ -1,0 +1,51 @@
+buildscript {
+    ext {
+        // Spring has to stay at 2.x.x for now, as 3.x.x requires Java 17
+        springVersion = '2.7.7'
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:$springVersion")
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'maven'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+jar {
+    archiveBaseName.set('SetlistFmToSpotifyPlaylist')
+    archiveVersion.set('1.0')
+    archiveFileName = "${archiveBaseName}-${archiveVersion}"
+}
+
+springBoot {
+    mainClass.set('spotify.SetlistFmToSpotifyPlaylist')
+}
+
+sourceCompatibility = 1.11
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://jitpack.io'
+    }
+    maven {
+        url 'https://mymavenrepo.com/repo/FpgB1Mi6I9ud1Gd3tX0r/'
+    }
+}
+
+dependencies {
+    implementation 'spotify:spotify-dependencies:1.7.8'
+    implementation 'se.michaelthelin.spotify:spotify-web-api-java:8.0.0'
+
+    implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"
+
+    implementation 'org.jsoup:jsoup:1.15.3'
+}
