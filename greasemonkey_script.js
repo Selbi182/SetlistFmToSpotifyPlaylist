@@ -9,9 +9,6 @@
 // ==/UserScript==
 const CONTROLLER_URL = "";
 
-const SETLIST_FM_API_TOKEN = "";
-const USER_ID = "";
-
 let path = window.location.pathname;
 let idStart = path.lastIndexOf("-") + 1;
 let idEnd = path.lastIndexOf(".html");
@@ -26,17 +23,13 @@ spotifyButton.style.cursor = "pointer";
 spotifyButton.style.color = "#1DB954";
 spotifyButton.title = "Create Spotify Playlist";
 
-var active = false;
+let active = false;
 spotifyButton.onclick = () => {
   if (!active) {
-    if (confirm("Do you really want to create a playlist for this setlist?")) {
+    let password = prompt("Enter password:");
+    if (password) {
       active = true;
       let customTargetPlaylistContainer = container.querySelector("input");
-      let targetPlaylistId = "";
-      if (customTargetPlaylistContainer.value) {
-        const segments = new URL(customTargetPlaylistContainer.value).pathname.split('/');
-        targetPlaylistId = segments.pop() || segments.pop(); // handle potential trailing slash
-      }
       spotifyButton.style.cursor = "initial";
       spotifyButton.style.color = "#7F7F7F";
       fetch(CONTROLLER_URL, {
@@ -46,17 +39,15 @@ spotifyButton.onclick = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          "password": password,
           "setlistFmId": setlistId,
-          "setlistFmApiToken": SETLIST_FM_API_TOKEN,
-          "userId": USER_ID,
-          "targetPlaylist": targetPlaylistId,
-          "create": true
+          "targetPlaylist": customTargetPlaylistContainer.value,
+          "dry": false
         })
       })
-          .then(response => response.json())
-          .then(response => {
-            alert("Playlist created!");
-          })
+      .then(response => response.json())
+      .then(() => alert("Playlist created!"))
+      .catch(ex => alert(ex));
     }
   } else {
     alert("The setlist has already been created!");

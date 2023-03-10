@@ -2,36 +2,30 @@ package spotify.setlist.data;
 
 public class SetlistCreationRequest {
   private final String setlistFmId;
-  private final String setlistFmApiToken;
   private final String targetPlaylist;
-  private final String userId;
-  private final boolean create;
+  private final String password;
+  private final boolean dry;
 
-  public SetlistCreationRequest(String setlistFmId, String setlistFmApiToken, String targetPlaylist, String userId, boolean create) {
+  public SetlistCreationRequest(String setlistFmId, String targetPlaylist, String password, boolean dry) {
     this.setlistFmId = setlistFmId;
-    this.setlistFmApiToken = setlistFmApiToken;
     this.targetPlaylist = targetPlaylist;
-    this.userId = userId;
-    this.create = create;
+    this.password = password;
+    this.dry = dry;
   }
 
   public String getSetlistFmId() {
     return setlistFmId;
   }
 
-  public String getSetlistFmApiToken() {
-    return setlistFmApiToken;
-  }
-
   public String getTargetPlaylist() {
     return targetPlaylist;
   }
 
-  public String getUserId() {
-    return userId;
+  public String getPassword() {
+    return password;
   }
 
-  public boolean isCreate() {
-    return create;
+  public boolean isDry() {
+    return dry;
   }
 }
