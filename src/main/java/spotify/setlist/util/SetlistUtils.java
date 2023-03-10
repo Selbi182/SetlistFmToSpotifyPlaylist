@@ -1,12 +1,18 @@
 package spotify.setlist.util;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.imageio.ImageIO;
 
 public class SetlistUtils {
   private static final DateTimeFormatter VERBOSE_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.US);
@@ -45,5 +51,19 @@ public class SetlistUtils {
       }
     }
     return formattedDate;
+  }
+
+  public static String toBase64Image(String imageUrl) {
+    try {
+      URL url = new URL(imageUrl);
+      BufferedImage img = ImageIO.read(url);
+      ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+      if (ImageIO.write(img, "jpeg", byteStream)) {
+        return Base64.getEncoder().encodeToString(byteStream.toByteArray());
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return null;
   }
 }

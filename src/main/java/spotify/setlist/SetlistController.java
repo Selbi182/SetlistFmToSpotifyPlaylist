@@ -1,31 +1,19 @@
 package spotify.setlist;
 
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
-import org.jsoup.Jsoup;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
+import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.User;
@@ -33,14 +21,13 @@ import spotify.api.SpotifyCall;
 import spotify.services.UserService;
 import spotify.setlist.data.Setlist;
 import spotify.setlist.data.SetlistCreationRequest;
+import spotify.setlist.setlistfm.SetlistFmApi;
 import spotify.setlist.util.SetlistUtils;
 import spotify.util.SpotifyLogger;
+import spotify.util.SpotifyUtils;
 
 @RestController
 public class SetlistController {
-  private static final Pattern REGEX_INTRO = Pattern.compile("\\bintro\\b", Pattern.CASE_INSENSITIVE);
-  private static final Pattern REGEX_SOLO = Pattern.compile("\\bsolo\\b", Pattern.CASE_INSENSITIVE);
-  private static final DateTimeFormatter PARSE_LFM_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.US);
 
   private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_fm_api_token";
   private final String setlistFmApiToken;
@@ -77,32 +64,16 @@ public class SetlistController {
   @PostMapping("/")
   public ResponseEntity<Setlist> createSpotifySetlistFromSetlistFm(@RequestBody SetlistCreationRequest setlistCreationRequest) throws NotFoundException {
     if (Objects.equals(this.password, setlistCreationRequest.getPassword())) {
-      Setlist setlist = getSetlistFromSetlistFm(setlistCreationRequest.getSetlistFmId(), setlistFmApiToken);
+      Setlist setlist = SetlistFmApi.getSetlist(setlistCreationRequest.getSetlistFmId(), setlistFmApiToken);
       String targetPlaylistParam = setlistCreationRequest.getTargetPlaylist();
-      Playlist targetPlaylist = null;
-      if (targetPlaylistParam != null && !targetPlaylistParam.isBlank()) {
-        // Find existing playlist
-        String targetPlaylistId = SetlistUtils.getIdFromSpotifyUrl(targetPlaylistParam);
-        targetPlaylist = SpotifyCall.execute(spotifyApi.getPlaylist(targetPlaylistId));
-        logger.info("Append tracks to existing setlist playlist: " + targetPlaylist.getName());
+
+      Playlist targetPlaylist;
+      if (targetPlaylistParam == null || targetPlaylistParam.isBlank()) {
+        targetPlaylist = createNewSetlistPlaylist(setlistCreationRequest, setlist);
       } else {
-        // Create new playlist
-        String setlistName = String.format("%s [Setlist]", setlist.getArtistName());
-        String eventDate = SetlistUtils.formatDate(setlist.getEventDate());
-        String setlistDescription = String.format("%s // %s, %s", eventDate, setlist.getVenue(), setlist.getCity());
-        if (!setlist.getTourName().isBlank()) {
-          setlistDescription = String.format("%s (%s)", setlist.getTourName(), setlistDescription);
-        }
-        if (this.user == null) {
-          this.user = userService.getCurrentUser();
-        }
-        if (!setlistCreationRequest.isDry()) {
-          targetPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(this.user.getId(), setlistName).description(setlistDescription).public_(false));
-        }
-        logger.info("New setlist created: " + setlistName + ": " + setlistDescription);
+        targetPlaylist = appendToExistingSetlistPlaylist(targetPlaylistParam);
       }
 
-      // Add the songs
       if (!setlistCreationRequest.isDry() && targetPlaylist != null) {
         addSetlistSongsToPlaylist(targetPlaylist, setlist);
       }
@@ -111,48 +82,38 @@ public class SetlistController {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
   }
 
-  private Setlist getSetlistFromSetlistFm(String setlistFmId, String setlistFmApiToken) throws NotFoundException {
-    try {
-      String url = UriComponentsBuilder.newInstance()
-          .scheme("https")
-          .host("api.setlist.fm")
-          .path("/rest/1.0/setlist/" + setlistFmId).build().toUriString();
-      String rawJson = Jsoup.connect(url)
-          .header("Accept", "application/json")
-          .header("x-api-key", setlistFmApiToken).ignoreContentType(true).execute().body();
-      JsonObject json = JsonParser.parseString(rawJson).getAsJsonObject();
+  private Playlist createNewSetlistPlaylist(SetlistCreationRequest setlistCreationRequest, Setlist setlist) {
+    String setlistName = String.format("%s [Setlist]", setlist.getArtistName());
+    String eventDate = SetlistUtils.formatDate(setlist.getEventDate());
+    String setlistDescription = String.format("%s // %s, %s", eventDate, setlist.getVenue(), setlist.getCity());
+    if (!setlist.getTourName().isBlank()) {
+      setlistDescription = String.format("%s (%s)", setlist.getTourName(), setlistDescription);
+    }
+    Playlist targetPlaylist = null;
+    if (!setlistCreationRequest.isDry()) {
+      targetPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(getUserId(), setlistName).description(setlistDescription).public_(false));
 
-      String artistName = json.get("artist").getAsJsonObject().get("name").getAsString();
-      LocalDate eventDate = LocalDate.parse(json.get("eventDate").getAsString(), PARSE_LFM_DATE_FORMATTER);
-      JsonObject venueJson = json.get("venue").getAsJsonObject();
-      JsonElement cityJson = venueJson.get("city");
-      String country = cityJson.getAsJsonObject().get("country").getAsJsonObject().get("name").getAsString();
-      String city = cityJson.getAsJsonObject().get("name").getAsString() + ", " + country;
-      String venue = venueJson.get("name").getAsString();
-      String tourName = json.has("tour") ? json.get("tour").getAsJsonObject().get("name").getAsString() : "";
-
-      List<String> songNames = new ArrayList<>();
-      JsonArray asJsonArray = json.get("sets").getAsJsonObject().get("set").getAsJsonArray();
-      for (JsonElement sets : asJsonArray) {
-        JsonArray songs = sets.getAsJsonObject().get("song").getAsJsonArray();
-        for (JsonElement song : songs) {
-          JsonObject songInfo = song.getAsJsonObject();
-          String songName = songInfo.get("name").getAsString();
-          boolean isRedundantTape = songInfo.has("tape") && songInfo.get("tape").getAsBoolean() && (songInfo.has("cover") || songInfo.has("info"));
-          boolean isRedundantSong = songName.isBlank()
-              || REGEX_INTRO.matcher(songName).find()
-              || REGEX_SOLO.matcher(songName).find();
-          if (!isRedundantTape && !isRedundantSong) {
-            String[] medleyParts = songName.split(" / ");
-            songNames.addAll(Arrays.asList(medleyParts));
+      Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(setlist.getArtistName())).getItems();
+      if (artists.length > 0) {
+        Artist artist = artists[0];
+        String image = SpotifyUtils.findLargestImage(artist.getImages());
+        if (image != null) {
+          String base64image = SetlistUtils.toBase64Image(image);
+          if (base64image != null) {
+            SpotifyCall.execute(spotifyApi.uploadCustomPlaylistCoverImage(targetPlaylist.getId()).image_data(base64image));
           }
         }
       }
-
-      return new Setlist(artistName, eventDate, city, venue, tourName, songNames);
-    } catch (IOException e) {
-      throw new NotFoundException("Error during API call to setlist.fm");
     }
+    logger.info("New setlist created: " + setlistName + ": " + setlistDescription);
+    return targetPlaylist;
+  }
+
+  private Playlist appendToExistingSetlistPlaylist(String targetPlaylistParam) {
+    String targetPlaylistId = SetlistUtils.getIdFromSpotifyUrl(targetPlaylistParam);
+    Playlist targetPlaylist = SpotifyCall.execute(spotifyApi.getPlaylist(targetPlaylistId));
+    logger.info("Append tracks to existing setlist playlist: " + targetPlaylist.getName());
+    return targetPlaylist;
   }
 
   private void addSetlistSongsToPlaylist(Playlist targetPlaylist, Setlist setlist) throws NotFoundException {
@@ -177,5 +138,12 @@ public class SetlistController {
         .toArray(String[]::new);
 
     SpotifyCall.execute(spotifyApi.addItemsToPlaylist(targetPlaylist.getId(), trackUris));
+  }
+
+  private String getUserId() {
+    if (this.user == null) {
+      this.user = userService.getCurrentUser();
+    }
+    return this.user.getId();
   }
 }

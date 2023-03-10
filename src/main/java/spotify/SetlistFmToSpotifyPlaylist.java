@@ -25,7 +25,8 @@ public class SetlistFmToSpotifyPlaylist {
 			return List.of(
 					"playlist-modify-private",
 					"playlist-modify-public",
-					"user-read-private"
+					"user-read-private",
+					"ugc-image-upload"
 			);
 		}
 
