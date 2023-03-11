@@ -1,15 +1,20 @@
 package spotify.setlist;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
@@ -20,7 +25,6 @@ import se.michaelthelin.spotify.model_objects.specification.User;
 import spotify.api.SpotifyCall;
 import spotify.services.UserService;
 import spotify.setlist.data.Setlist;
-import spotify.setlist.data.SetlistCreationRequest;
 import spotify.setlist.setlistfm.SetlistFmApi;
 import spotify.setlist.util.SetlistUtils;
 import spotify.util.SpotifyLogger;
@@ -28,12 +32,11 @@ import spotify.util.SpotifyUtils;
 
 @RestController
 public class SetlistController {
+  private static final String SETLIST_DESCRIPTION = "Created with: https://github.com/Selbi182/SetlistFmToSpotifyPlaylist";
 
   private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_fm_api_token";
+  public static final int MAX_PLAYLIST_NAME_LENGTH = 100;
   private final String setlistFmApiToken;
-
-  private static final String PASSWORD_ENV = "password";
-  private final String password;
 
   private final SpotifyApi spotifyApi;
   private final UserService userService;
@@ -51,72 +54,40 @@ public class SetlistController {
       throw new IllegalStateException(SETLIST_FM_API_TOKEN_ENV + " environment variable is missing!");
     }
     this.setlistFmApiToken = setlistFmApiToken;
+  }
 
-    String password = System.getenv(PASSWORD_ENV);
-    if (password != null && !password.isBlank()) {
-      this.password = password;
-    } else {
-      throw new IllegalStateException("Password environment variable is missing!");
-    }
+  @RequestMapping("/")
+  public ModelAndView creationModel() {
+    return new ModelAndView("create.html");
   }
 
   @CrossOrigin
-  @PostMapping("/")
-  public ResponseEntity<Setlist> createSpotifySetlistFromSetlistFm(@RequestBody SetlistCreationRequest setlistCreationRequest) throws NotFoundException {
-    if (Objects.equals(this.password, setlistCreationRequest.getPassword())) {
-      Setlist setlist = SetlistFmApi.getSetlist(setlistCreationRequest.getSetlistFmId(), setlistFmApiToken);
-      String targetPlaylistParam = setlistCreationRequest.getTargetPlaylist();
-
-      Playlist targetPlaylist;
-      if (targetPlaylistParam == null || targetPlaylistParam.isBlank()) {
-        targetPlaylist = createNewSetlistPlaylist(setlistCreationRequest, setlist);
-      } else {
-        targetPlaylist = appendToExistingSetlistPlaylist(targetPlaylistParam);
-      }
-
-      if (!setlistCreationRequest.isDry() && targetPlaylist != null) {
-        addSetlistSongsToPlaylist(targetPlaylist, setlist);
-      }
-      return ResponseEntity.ok(setlist);
-    }
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+  @RequestMapping("/create")
+  public ResponseEntity<String> createSpotifySetlistFromSetlistFmByParam(@RequestParam("url") String url) throws MalformedURLException, NotFoundException, IndexOutOfBoundsException {
+    URL asUrl = new URL(url);
+    String path = asUrl.getPath();
+    String[] segments = path.split("-");
+    String lastSegment = segments[segments.length - 1];
+    String setlistFmId = lastSegment.split("\\.")[0];
+    return createSpotifySetlistFromSetlistFmById(setlistFmId);
   }
 
-  private Playlist createNewSetlistPlaylist(SetlistCreationRequest setlistCreationRequest, Setlist setlist) {
-    String setlistName = String.format("%s [Setlist]", setlist.getArtistName());
-    String eventDate = SetlistUtils.formatDate(setlist.getEventDate());
-    String setlistDescription = String.format("%s // %s, %s", eventDate, setlist.getVenue(), setlist.getCity());
-    if (!setlist.getTourName().isBlank()) {
-      setlistDescription = String.format("%s (%s)", setlist.getTourName(), setlistDescription);
-    }
-    Playlist targetPlaylist = null;
-    if (!setlistCreationRequest.isDry()) {
-      targetPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(getUserId(), setlistName).description(setlistDescription).public_(false));
+  @CrossOrigin
+  @RequestMapping("/create/{setlistFmId}")
+  public ResponseEntity<String> createSpotifySetlistFromSetlistFmById(@PathVariable("setlistFmId") String setlistFmId) throws NotFoundException {
+    Setlist setlist = SetlistFmApi.getSetlist(setlistFmId, setlistFmApiToken);
+    List<Track> songsFromSpotify = findSongsOnSpotify(setlist);
 
-      Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(setlist.getArtistName())).getItems();
-      if (artists.length > 0) {
-        Artist artist = artists[0];
-        String image = SpotifyUtils.findLargestImage(artist.getImages());
-        if (image != null) {
-          String base64image = SetlistUtils.toBase64Image(image);
-          if (base64image != null) {
-            SpotifyCall.execute(spotifyApi.uploadCustomPlaylistCoverImage(targetPlaylist.getId()).image_data(base64image));
-          }
-        }
-      }
-    }
-    logger.info("New setlist created: " + setlistName + ": " + setlistDescription);
-    return targetPlaylist;
+    Playlist targetPlaylist = createNewSetlistPlaylist(setlist);
+    attachArtistImage(setlist, targetPlaylist);
+    addSetlistSongsToPlaylist(targetPlaylist, songsFromSpotify);
+
+    String playlistUrl = "https://open.spotify.com/playlist/" + targetPlaylist.getId();
+    logger.info("New setlist created: " + targetPlaylist.getName() + " - " + playlistUrl);
+    return ResponseEntity.ok(playlistUrl);
   }
 
-  private Playlist appendToExistingSetlistPlaylist(String targetPlaylistParam) {
-    String targetPlaylistId = SetlistUtils.getIdFromSpotifyUrl(targetPlaylistParam);
-    Playlist targetPlaylist = SpotifyCall.execute(spotifyApi.getPlaylist(targetPlaylistId));
-    logger.info("Append tracks to existing setlist playlist: " + targetPlaylist.getName());
-    return targetPlaylist;
-  }
-
-  private void addSetlistSongsToPlaylist(Playlist targetPlaylist, Setlist setlist) throws NotFoundException {
+  private List<Track> findSongsOnSpotify(Setlist setlist) throws NotFoundException {
     List<Track> tracksFromSpotify = new ArrayList<>();
     for (String songName : setlist.getSongNames()) {
       Track[] searchResults = SpotifyCall.execute(spotifyApi.searchTracks(setlist.getArtistName() + " " + songName).limit(10)).getItems();
@@ -133,10 +104,34 @@ public class SetlistController {
         throw new NotFoundException("Couldn't find song on Spotify: " + songName);
       }
     }
-    String[] trackUris = tracksFromSpotify.stream()
-        .map(Track::getUri)
-        .toArray(String[]::new);
+    return tracksFromSpotify;
+  }
 
+  private Playlist createNewSetlistPlaylist(Setlist setlist) {
+    String tourOrVenue = setlist.getTourName().isBlank() ? setlist.getVenue() + ", " + setlist.getCity() : setlist.getTourName();
+    String setlistName = String.format("%s [Setlist] // %s (%d)", setlist.getArtistName(), tourOrVenue, setlist.getEventDate().getYear());
+    setlistName = setlistName.substring(0, Math.min(setlistName.length(), MAX_PLAYLIST_NAME_LENGTH));
+    return SpotifyCall.execute(spotifyApi.createPlaylist(getUserId(), setlistName).description(SETLIST_DESCRIPTION).public_(true));
+  }
+
+  private void attachArtistImage(Setlist setlist, Playlist targetPlaylist) {
+    Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(setlist.getArtistName())).getItems();
+    if (artists.length > 0) {
+      Artist artist = artists[0];
+      String image = SpotifyUtils.findLargestImage(artist.getImages());
+      if (image != null) {
+        String base64image = SetlistUtils.toBase64Image(image);
+        if (base64image != null) {
+          SpotifyCall.execute(spotifyApi.uploadCustomPlaylistCoverImage(targetPlaylist.getId()).image_data(base64image));
+        }
+      }
+    }
+  }
+
+  private void addSetlistSongsToPlaylist(Playlist targetPlaylist, List<Track> tracksFromSpotify) {
+    String[] trackUris = tracksFromSpotify.stream()
+      .map(Track::getUri)
+      .toArray(String[]::new);
     SpotifyCall.execute(spotifyApi.addItemsToPlaylist(targetPlaylist.getId(), trackUris));
   }
 
@@ -145,5 +140,20 @@ public class SetlistController {
       this.user = userService.getCurrentUser();
     }
     return this.user.getId();
+  }
+
+  @ExceptionHandler(NotFoundException.class)
+  public ResponseEntity<String> handleNotFoundException(NotFoundException e) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+  }
+
+  @ExceptionHandler(IOException.class)
+  public ResponseEntity<String> handleIOException(IOException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<String> handleGenericException(Exception e) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
   }
 }

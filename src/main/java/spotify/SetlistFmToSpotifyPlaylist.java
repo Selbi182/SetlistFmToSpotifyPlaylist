@@ -32,7 +32,7 @@ public class SetlistFmToSpotifyPlaylist {
 
 		@Override
 		public int port() {
-			return 8188;
+			return 8189;
 		}
 	}
 }

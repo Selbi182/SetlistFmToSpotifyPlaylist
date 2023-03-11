@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>setlist.fm to Spotify</title>
+  <script src="create.js" type="module"></script>
+  <link rel="stylesheet" href="create.css"/>
+  <link rel="icon" href="favicon.png" type="image/x-icon">
+</head>
+<body>
+  <header>
+    <div id="headline">setlist.fm to Spotify</div>
+    <div id="subtitle">
+      <div>Convert any setlist from <a href="https://www.setlist.fm">setlist.fm</a> to a Spotify playlist in seconds!</div>
+      <div>All setlist playlists will be made publicly available on <a href="https://open.spotify.com/user/31daa4vc625d7o3ldksnjnjafwxe">this Spotify profile</a>.</div>
+    </div>
+  </header>
+  <div id="main">
+    <input id="input" placeholder="Copy-paste a valid setlist.fm URL...">
+    <button id="submit" disabled>Create Playlist</button>
+    <div id="format-info">
+      <div id="format-info-header">A valid URL has the following format:</div>
+      <div id="format-info-example">https://www.setlist.fm/setlist/artist/year/venue-city-country-id.html</div>
+    </div>
+  </div>
+  <footer>
+    <div>This service is neither affiliated with nor endorsed by Spotify or setlist.fm.</div>
+    <a href="https://github.com/Selbi182/SetlistFmToSpotifyPlaylist" target="_blank">&copy; 2023 Selbi</a>
+  </footer>
+</body>
+</html>
