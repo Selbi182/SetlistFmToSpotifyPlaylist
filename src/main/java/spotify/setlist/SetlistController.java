@@ -25,6 +25,7 @@ import se.michaelthelin.spotify.model_objects.specification.User;
 import spotify.api.SpotifyCall;
 import spotify.services.UserService;
 import spotify.setlist.data.Setlist;
+import spotify.setlist.data.SetlistCreationResponse;
 import spotify.setlist.setlistfm.SetlistFmApi;
 import spotify.setlist.util.SetlistUtils;
 import spotify.util.SpotifyLogger;
@@ -63,7 +64,7 @@ public class SetlistController {
 
   @CrossOrigin
   @RequestMapping("/create")
-  public ResponseEntity<String> createSpotifySetlistFromSetlistFmByParam(@RequestParam("url") String url) throws MalformedURLException, NotFoundException, IndexOutOfBoundsException {
+  public ResponseEntity<SetlistCreationResponse> createSpotifySetlistFromSetlistFmByParam(@RequestParam("url") String url) throws MalformedURLException, NotFoundException, IndexOutOfBoundsException {
     URL asUrl = new URL(url);
     String path = asUrl.getPath();
     String[] segments = path.split("-");
@@ -74,7 +75,7 @@ public class SetlistController {
 
   @CrossOrigin
   @RequestMapping("/create/{setlistFmId}")
-  public ResponseEntity<String> createSpotifySetlistFromSetlistFmById(@PathVariable("setlistFmId") String setlistFmId) throws NotFoundException {
+  public ResponseEntity<SetlistCreationResponse> createSpotifySetlistFromSetlistFmById(@PathVariable("setlistFmId") String setlistFmId) throws NotFoundException {
     Setlist setlist = SetlistFmApi.getSetlist(setlistFmId, setlistFmApiToken);
     List<Track> songsFromSpotify = findSongsOnSpotify(setlist);
 
@@ -84,7 +85,9 @@ public class SetlistController {
 
     String playlistUrl = "https://open.spotify.com/playlist/" + targetPlaylist.getId();
     logger.info("New setlist created: " + targetPlaylist.getName() + " - " + playlistUrl);
-    return ResponseEntity.ok(playlistUrl);
+
+    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, playlistUrl, targetPlaylist.getId());
+    return ResponseEntity.ok(setlistCreationResponse);
   }
 
   private List<Track> findSongsOnSpotify(Setlist setlist) throws NotFoundException {

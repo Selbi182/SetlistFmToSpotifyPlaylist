@@ -33,10 +33,10 @@ body {
     padding: 2vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-around;
     align-items: center;
-    gap: 8vh;
     text-align: center;
+    overflow: hidden;
 }
 
 header {
@@ -76,10 +76,18 @@ header > div {
     width: 100%;
 }
 
+#input.hide {
+    display: none;
+}
+
 #submit {
     font-size: 3vh;
     padding: 2vh;
     width: fit-content;
+}
+
+#submit.hide {
+    display: none;
 }
 
 #format-info {
@@ -87,11 +95,43 @@ header > div {
     font-size: 2vh;
 }
 
+#format-info.hide {
+    display: none;
+}
+
 #format-info-example {
     font-family: Consolas, monospace;
+}
+
+#spinner {
+    display: none;
+}
+
+#spinner.show {
+    display: inline-block;
+    border: 0.3vh solid white;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: rotating 1s linear infinite;
+    width: 3vh;
+    height: 3vh;
+}
+
+#playlist-embed {
+    width: 100%;
 }
 
 
 footer > div {
     margin: 1vh 0;
+}
+
+
+@keyframes rotating {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
