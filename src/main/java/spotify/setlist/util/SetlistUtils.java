@@ -1,69 +1,50 @@
 package spotify.setlist.util;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Base64;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import javax.imageio.ImageIO;
+import spotify.setlist.data.Setlist;
 
 public class SetlistUtils {
-  private static final DateTimeFormatter VERBOSE_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.US);
-  private static final Pattern NUMBER_REGEX = Pattern.compile("\\d+");
+  private static final int MAX_PLAYLIST_NAME_LENGTH = 100;
 
-  public static String getIdFromSpotifyUrl(String spotifyUrl) {
-    try {
-      URL url = new URL(spotifyUrl);
-      String path = url.getPath();
-      return path.substring(path.lastIndexOf('/') + 1);
-    } catch (MalformedURLException e) {
-      throw new IllegalArgumentException(e);
-    }
+  /**
+   * Get the setlist ID from a setlist.fm URL.
+   *
+   * @param url the setlist.fm URL
+   * @return the setlist ID
+   * @throws MalformedURLException on a bad URL
+   */
+  public static String getIdFromSetlistFmUrl(String url) throws MalformedURLException {
+    URL asUrl = new URL(url);
+    String path = asUrl.getPath();
+    String[] segments = path.split("-");
+    String lastSegment = segments[segments.length - 1];
+    return lastSegment.split("\\.")[0];
   }
 
-  public static String formatDate(LocalDate eventDate) {
-    String formattedDate = eventDate.format(VERBOSE_DATE_FORMATTER);
-    Matcher matcher = NUMBER_REGEX.matcher(formattedDate);
-    boolean dateFound = matcher.find();
-    if (dateFound) {
-      int day = Integer.parseInt(matcher.group());
-      String suffix = "th";
-      if (day < 11 || day > 13) {
-        switch (day % 10) {
-        case 1:
-          suffix = "st";
-          break;
-        case 2:
-          suffix = "nd";
-          break;
-        case 3:
-          suffix = "rd";
-          break;
-        }
-        formattedDate = matcher.replaceFirst(day + suffix);
-      }
-    }
-    return formattedDate;
-  }
+  /**
+   * Assemble the name for the setlist playlist in the following format:
+   * <pre>Artist Name [Setlist] // Tour Name (Year)</pre>
+   * If there is no tour name, the "Venue, Country" will be used as fallback.
+   * If there is a tour name, but it doesn't contain "Tour", it will be appended.
+   * Names over 100 characters will be cut off.
+   *
+   * @param setlist the setlist as base
+   * @return the playlist string
+   */
+  public static String assemblePlaylistSetlistName(Setlist setlist) {
+    String tourOrVenue = setlist.getVenue() + ", " + setlist.getCity();
 
-  public static String toBase64Image(String imageUrl) {
-    try {
-      URL url = new URL(imageUrl);
-      BufferedImage img = ImageIO.read(url);
-      ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-      if (ImageIO.write(img, "jpeg", byteStream)) {
-        return Base64.getEncoder().encodeToString(byteStream.toByteArray());
+    String tourName = setlist.getTourName().strip();
+    if (!tourName.isBlank()) {
+      tourOrVenue = tourName;
+      if (!tourName.toLowerCase().contains("tour")) {
+        tourOrVenue += " Tour";
       }
-    } catch (IOException e) {
-      e.printStackTrace();
     }
-    return null;
+
+    String setlistName = String.format("%s [Setlist] // %s (%d)", setlist.getArtistName(), tourOrVenue, setlist.getEventDate().getYear());
+    return setlistName.substring(0, Math.min(setlistName.length(), MAX_PLAYLIST_NAME_LENGTH));
   }
 }
