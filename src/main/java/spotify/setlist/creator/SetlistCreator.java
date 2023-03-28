@@ -24,7 +24,7 @@ import spotify.util.SpotifyUtils;
 
 @Component
 public class SetlistCreator {
-  private static final String SETLIST_DESCRIPTION = "Created with: https://setlistfm.selbi.club";
+  private static final String SETLIST_DESCRIPTION = "Generated with: https://setlistfm.selbi.club";
 
   private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_fm_api_token";
   private final String setlistFmApiToken;
@@ -84,7 +84,6 @@ public class SetlistCreator {
 
   private Playlist createNewSetlistPlaylist(Setlist setlist) {
     String setlistName = SetlistUtils.assemblePlaylistSetlistName(setlist);
-
     return playlistService.createPlaylist(setlistName, SETLIST_DESCRIPTION, true);
   }
 

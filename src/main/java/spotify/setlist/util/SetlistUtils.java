@@ -34,17 +34,18 @@ public class SetlistUtils {
    * @return the playlist string
    */
   public static String assemblePlaylistSetlistName(Setlist setlist) {
-    String tourOrVenue = setlist.getVenue() + ", " + setlist.getCity();
+    String year = Integer.toString(setlist.getEventDate().getYear());
 
+    String tourOrVenue = setlist.getVenue() + ", " + setlist.getCity();
     String tourName = setlist.getTourName().strip();
     if (!tourName.isBlank()) {
-      tourOrVenue = tourName;
+      tourOrVenue = tourName.replace(year, "").replaceAll("\\s+", " ").strip();
       if (!tourName.toLowerCase().contains("tour")) {
         tourOrVenue += " Tour";
       }
     }
 
-    String setlistName = String.format("%s [Setlist] // %s (%d)", setlist.getArtistName(), tourOrVenue, setlist.getEventDate().getYear());
+    String setlistName = String.format("%s [Setlist] // %s (%s)", setlist.getArtistName(), tourOrVenue, year);
     return setlistName.substring(0, Math.min(setlistName.length(), MAX_PLAYLIST_NAME_LENGTH));
   }
 }
