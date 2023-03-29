@@ -2,12 +2,10 @@ package spotify.setlist.data;
 
 public class SetlistCreationResponse {
   private final Setlist setlist;
-  private final String playlistUrl;
   private final String playlistId;
 
-  public SetlistCreationResponse(Setlist setlist, String playlistUrl, String playlistId) {
+  public SetlistCreationResponse(Setlist setlist, String playlistId) {
     this.setlist = setlist;
-    this.playlistUrl = playlistUrl;
     this.playlistId = playlistId;
   }
 
@@ -15,11 +13,11 @@ public class SetlistCreationResponse {
     return setlist;
   }
 
-  public String getPlaylistUrl() {
-    return playlistUrl;
-  }
-
   public String getPlaylistId() {
     return playlistId;
+  }
+
+  public String getPlaylistUrl() {
+    return "https://open.spotify.com/playlist/" + getPlaylistId();
   }
 }

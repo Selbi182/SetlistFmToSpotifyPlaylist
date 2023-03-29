@@ -3,6 +3,8 @@ package spotify.setlist.data;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class Setlist {
   private final String artistName;
   private final LocalDate eventDate;
@@ -42,5 +44,15 @@ public class Setlist {
 
   public List<String> getSongNames() {
     return songNames;
+  }
+
+  @JsonIgnore
+  public boolean hasTour() {
+    return getTourName() != null && !getTourName().isBlank();
+  }
+
+  @JsonIgnore
+  public String venueAndCity() {
+    return getVenue() + ", " + getCity();
   }
 }
