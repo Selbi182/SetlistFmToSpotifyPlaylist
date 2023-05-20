@@ -1,12 +1,15 @@
 package spotify.setlist.creator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
@@ -16,7 +19,6 @@ import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
 import spotify.services.PlaylistService;
-import spotify.services.TrackService;
 import spotify.setlist.data.Setlist;
 import spotify.setlist.data.SetlistCreationResponse;
 import spotify.setlist.setlistfm.SetlistFmApi;
@@ -31,15 +33,13 @@ public class SetlistCreator {
   private final String setlistFmApiToken;
 
   private final SpotifyApi spotifyApi;
-  private final TrackService trackService;
   private final PlaylistService playlistService;
   private final SpotifyOptimizedExecutorService executorService;
   private final SpotifyLogger logger;
 
-  SetlistCreator(SpotifyApi spotifyApi, PlaylistService playlistService, TrackService trackService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, SpotifyLogger spotifyLogger) {
+  SetlistCreator(SpotifyApi spotifyApi, PlaylistService playlistService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, SpotifyLogger spotifyLogger) {
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
-    this.trackService = trackService;
     this.executorService = spotifyOptimizedExecutorService;
     this.logger = spotifyLogger;
 
@@ -87,16 +87,33 @@ public class SetlistCreator {
     return setlistCreationResponse;
   }
 
-  private List<Track> findSongsOnSpotify(Setlist setlist) throws NotFoundException {
+  private List<Track> findSongsOnSpotify(Setlist setlist) {
     List<Callable<Track>> callables = new ArrayList<>();
     for (String songName : setlist.getSongNames()) {
-      callables.add(() -> trackService.searchTrack(songName, setlist.getArtistName()));
+      callables.add(() -> searchTrack(songName, setlist.getArtistName()));
     }
-    List<Track> tracksSearchResults = executorService.executeAndWait(callables);
-    if (tracksSearchResults.contains(null)) {
-      throw new NotFoundException("Couldn't find all songs");
+    return executorService.executeAndWait(callables).stream()
+      .filter(Objects::nonNull)
+      .collect(Collectors.toList());
+  }
+
+  public Track searchTrack(String trackName, String artistName) {
+    String trackNameIdentifier = SpotifyUtils.strippedTitleIdentifier(trackName);
+
+    String searchQuery = String.format("track:%s artist:%s", trackName, artistName);
+    Track[] searchResults = SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems();
+
+    if (searchResults.length > 0) {
+      return Arrays.stream(searchResults)
+        .filter(track -> {
+          String searchResultStripped = SpotifyUtils.strippedTitleIdentifier(track.getName());
+          return StringUtils.startsWithIgnoreCase(searchResultStripped, trackNameIdentifier);
+        })
+        .findFirst()
+        .orElse(searchResults[0]);
     }
-    return tracksSearchResults;
+
+    return null;
   }
 
   private Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<Track> setlistTracks) {
@@ -104,7 +121,7 @@ public class SetlistCreator {
     for (PlaylistSimplified playlistSimplified : currentUsersPlaylists) {
       if (playlistSimplified.getTracks().getTotal().equals(setlistTracks.size()) && Objects.equals(setlistName, playlistSimplified.getName())) {
         Playlist playlist = playlistService.getPlaylist(playlistSimplified.getId());
-        List<Track> allPlaylistTracks = playlistService.getAllPlaylistTracks(playlist);
+        List<Track> allPlaylistTracks = playlistService.getAllPlaylistSongs(playlist);
         if (allPlaylistTracks.equals(setlistTracks)) {
           return Optional.of(playlist);
         }
