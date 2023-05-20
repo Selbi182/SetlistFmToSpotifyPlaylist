@@ -100,7 +100,7 @@ public class SetlistCreator {
   public Track searchTrack(String trackName, String artistName) {
     String trackNameIdentifier = SpotifyUtils.strippedTitleIdentifier(trackName);
 
-    String searchQuery = String.format("track:%s artist:%s", trackName, artistName);
+    String searchQuery = String.format("track:%s artist:%s", trackName, artistName).replaceAll("'", ""); // due to a bug in the Spotify search algorithm, apostrophes cause weird behavior
     Track[] searchResults = SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems();
 
     if (searchResults.length > 0) {
