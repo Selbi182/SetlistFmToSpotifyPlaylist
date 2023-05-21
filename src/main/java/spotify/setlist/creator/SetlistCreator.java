@@ -65,12 +65,15 @@ public class SetlistCreator {
     String setlistName = SetlistUtils.assemblePlaylistName(setlist);
     List<Track> songsFromSpotify = findSongsOnSpotify(setlist);
 
+    // Calculate missed songs (should be 0 ideally)
+    int missedSongs = setlist.getSongNames().size() - songsFromSpotify.size();
+
     // Search for existing playlists that match the name and tracks
     // If there is a match, return that instead one instead of creating an entirely new playlist
     Optional<Playlist> existingSetlistPlaylist = searchForExistingSetlistPlaylist(setlistName, songsFromSpotify);
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
-      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId());
+      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), missedSongs);
       logger.info(String.format("Existing setlist requested: %s - %s", existingPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
       return setlistCreationResponse;
     }
@@ -82,7 +85,7 @@ public class SetlistCreator {
     playlistService.addTracksToPlaylist(targetPlaylist, songsFromSpotify);
 
     // Log and return the result
-    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId());
+    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), missedSongs);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
     return setlistCreationResponse;
   }

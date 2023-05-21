@@ -1,4 +1,13 @@
 (function() {
+  let copyrightYear = document.getElementById("copyright-year");
+  let startYear = copyrightYear.innerHTML;
+  let currentYear = new Date().getFullYear().toString();
+  copyrightYear.innerHTML = startYear < currentYear
+    ? `${startYear} \u2013 ${currentYear}`
+    : currentYear;
+
+  ///////////////////////
+
   let inputField = document.getElementById("input");
   let submitButton = document.getElementById("submit");
   let formatInfo = document.getElementById("format-info");
@@ -22,14 +31,15 @@
   submitButton.onclick = () => {
     let url = inputField.value;
     if (verifySetlistFmUrl(url)) {
-      active = true;
-      inputField.setAttribute("disabled", "");
-      submitButton.setAttribute("disabled", "");
-      submitButton.innerHTML = "Creating Playlist...";
-      spinner.classList.add("show");
+      setFormDisabled(true);
 
       fetch(`/create?url=${url}`)
-        .then(response => response.json())
+        .then(response => {
+          if (response.status !== 200) {
+            throw "Couldn't find setlist or the given setlist is empty!";
+          }
+          return response.json();
+        })
         .then(setlistCreationResponse => {
           submitButton.innerHTML = "Playlist Created! Loading Embed...";
 
@@ -41,15 +51,40 @@
             let playlistId = setlistCreationResponse.playlistId;
             let playlistUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator`;
             playlistEmbed.innerHTML = `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+
+            let missedSongs = setlistCreationResponse.missedSongs;
+            if (missedSongs > 0) {
+              let plural = missedSongs !== 1;
+              alert(`${missedSongs} song${plural ? "s" : ""} couldn't be found on Spotify and ${plural ? "have" : "has"} been omitted from the playlist!`);
+            }
           }, 2000)
 
         })
-        .catch(ex => alert(ex));
+        .catch(ex => {
+          alert(ex);
+          setFormDisabled(false);
+        });
     }
   }
 
   let regex = /https?:\/\/(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html/i;
   function verifySetlistFmUrl(url) {
     return regex.test(url);
+  }
+
+  function setFormDisabled(disabled) {
+    if (disabled) {
+      active = true;
+      inputField.setAttribute("disabled", "");
+      submitButton.setAttribute("disabled", "");
+      submitButton.innerHTML = "Creating Playlist...";
+      spinner.classList.add("show");
+    } else {
+      active = false;
+      inputField.removeAttribute("disabled");
+      submitButton.removeAttribute("disabled");
+      submitButton.innerHTML = "Create Playlist";
+      spinner.classList.remove("show");
+    }
   }
 })();

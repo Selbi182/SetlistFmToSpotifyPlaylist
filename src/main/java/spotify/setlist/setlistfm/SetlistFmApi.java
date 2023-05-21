@@ -1,6 +1,5 @@
 package spotify.setlist.setlistfm;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -28,12 +27,12 @@ public class SetlistFmApi {
   public static Setlist getSetlist(String setlistFmId, String setlistFmApiToken) throws NotFoundException {
     try {
       String url = UriComponentsBuilder.newInstance()
-          .scheme("https")
-          .host("api.setlist.fm")
-          .path("/rest/1.0/setlist/" + setlistFmId).build().toUriString();
+        .scheme("https")
+        .host("api.setlist.fm")
+        .path("/rest/1.0/setlist/" + setlistFmId).build().toUriString();
       String rawJson = Jsoup.connect(url)
-          .header("Accept", "application/json")
-          .header("x-api-key", setlistFmApiToken).ignoreContentType(true).execute().body();
+        .header("Accept", "application/json")
+        .header("x-api-key", setlistFmApiToken).ignoreContentType(true).execute().body();
       JsonObject json = JsonParser.parseString(rawJson).getAsJsonObject();
 
       String artistName = json.get("artist").getAsJsonObject().get("name").getAsString();
@@ -47,6 +46,10 @@ public class SetlistFmApi {
 
       List<String> songNames = new ArrayList<>();
       JsonArray asJsonArray = json.get("sets").getAsJsonObject().get("set").getAsJsonArray();
+      if (asJsonArray.isEmpty()) {
+        throw new IllegalStateException("Setlist mustn't be empty");
+      }
+
       for (JsonElement sets : asJsonArray) {
         JsonArray songs = sets.getAsJsonObject().get("song").getAsJsonArray();
         for (JsonElement song : songs) {
@@ -54,8 +57,8 @@ public class SetlistFmApi {
           String songName = songInfo.get("name").getAsString();
           boolean isRedundantTape = songInfo.has("tape") && songInfo.get("tape").getAsBoolean() && (songInfo.has("cover") || songInfo.has("info"));
           boolean isRedundantSong = songName.isBlank()
-              || REGEX_INTRO.matcher(songName).find()
-              || REGEX_SOLO.matcher(songName).find();
+            || REGEX_INTRO.matcher(songName).find()
+            || REGEX_SOLO.matcher(songName).find();
           if (!isRedundantTape && !isRedundantSong) {
             String[] medleyParts = songName.split(" / ");
             songNames.addAll(Arrays.asList(medleyParts));
@@ -64,8 +67,8 @@ public class SetlistFmApi {
       }
 
       return new Setlist(artistName, eventDate, city, venue, tourName, songNames);
-    } catch (IOException e) {
-      throw new NotFoundException("Error during API call to setlist.fm");
+    } catch (Exception e) {
+      throw new NotFoundException("Setlist isn't valid");
     }
   }
 }
