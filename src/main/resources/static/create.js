@@ -1,10 +1,6 @@
 (function() {
-  let copyrightYear = document.getElementById("copyright-year");
-  let startYear = copyrightYear.innerHTML;
-  let currentYear = new Date().getFullYear().toString();
-  copyrightYear.innerHTML = startYear < currentYear
-    ? `${startYear} \u2013 ${currentYear}`
-    : currentYear;
+  setCopyrightYear();
+  refreshConvertedSetlistsCounter();
 
   ///////////////////////
 
@@ -51,6 +47,7 @@
             let playlistId = setlistCreationResponse.playlistId;
             let playlistUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator`;
             playlistEmbed.innerHTML = `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+            refreshConvertedSetlistsCounter();
 
             let missedSongs = setlistCreationResponse.missedSongs;
             if (missedSongs > 0) {
@@ -86,5 +83,22 @@
       submitButton.innerHTML = "Create Playlist";
       spinner.classList.remove("show");
     }
+  }
+
+  function refreshConvertedSetlistsCounter() {
+    let counter = document.getElementById("counter");
+    fetch("/counter")
+      .then(result => result.text())
+      .then(text => counter.innerHTML = text);
+
+  }
+
+  function setCopyrightYear() {
+    let copyrightYear = document.getElementById("copyright-year");
+    let startYear = copyrightYear.innerHTML;
+    let currentYear = new Date().getFullYear().toString();
+    copyrightYear.innerHTML = startYear < currentYear
+      ? `${startYear} \u2013 ${currentYear}`
+      : currentYear;
   }
 })();

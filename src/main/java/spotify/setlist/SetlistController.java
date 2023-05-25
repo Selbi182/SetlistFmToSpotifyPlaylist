@@ -45,6 +45,12 @@ public class SetlistController {
     return ResponseEntity.ok(setlistCreationResponse);
   }
 
+  @CrossOrigin
+  @RequestMapping("/counter")
+  public ResponseEntity<Integer> createdSetlistsCounter() {
+    return ResponseEntity.ok(setlistCreator.getSetlistCounter());
+  }
+
   @ExceptionHandler(NotFoundException.class)
   public ResponseEntity<String> handleNotFoundException(NotFoundException e) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

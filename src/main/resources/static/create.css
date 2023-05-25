@@ -60,6 +60,18 @@ header > div {
     opacity: 0.85;
 }
 
+#counter:empty {
+    visibility: hidden;
+}
+
+#counter {
+    font-weight: bold;
+}
+
+#counter::before {
+    content: "Converted Setlists: ";
+}
+
 
 #main {
     display: flex;

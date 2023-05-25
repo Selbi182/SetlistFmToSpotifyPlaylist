@@ -6,8 +6,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -27,6 +33,7 @@ import spotify.util.SpotifyLogger;
 import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.SpotifyUtils;
 
+@EnableScheduling
 @Component
 public class SetlistCreator {
   private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_fm_api_token";
@@ -37,17 +44,36 @@ public class SetlistCreator {
   private final SpotifyOptimizedExecutorService executorService;
   private final SpotifyLogger logger;
 
+  private final AtomicInteger createdSetlists;
+
   SetlistCreator(SpotifyApi spotifyApi, PlaylistService playlistService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, SpotifyLogger spotifyLogger) {
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
     this.executorService = spotifyOptimizedExecutorService;
     this.logger = spotifyLogger;
 
+    this.createdSetlists = new AtomicInteger();
+
     String setlistFmApiToken = System.getenv(SETLIST_FM_API_TOKEN_ENV);
     if (setlistFmApiToken == null || setlistFmApiToken.isBlank()) {
       throw new IllegalStateException(SETLIST_FM_API_TOKEN_ENV + " environment variable is missing!");
     }
     this.setlistFmApiToken = setlistFmApiToken;
+  }
+
+  @PostConstruct
+  void calculateExistingSetlists() {
+    refreshCreatedSetlistsCounter();
+  }
+
+  @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.HOURS)
+  public void refreshCreatedSetlistsCounter() {
+    Integer total = SpotifyCall.execute(spotifyApi.getListOfCurrentUsersPlaylists()).getTotal();
+    createdSetlists.set(total);
+  }
+
+  public int getSetlistCounter() {
+    return createdSetlists.get();
   }
 
   /**
@@ -87,6 +113,7 @@ public class SetlistCreator {
     // Log and return the result
     SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), missedSongs);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
+    createdSetlists.incrementAndGet();
     return setlistCreationResponse;
   }
 
