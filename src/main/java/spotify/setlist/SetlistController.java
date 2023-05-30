@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,15 +32,9 @@ public class SetlistController {
 
   @CrossOrigin
   @RequestMapping("/create")
-  public ResponseEntity<SetlistCreationResponse> createSpotifySetlistFromSetlistFmByParam(@RequestParam("url") String url) throws MalformedURLException, NotFoundException, IndexOutOfBoundsException {
+  public ResponseEntity<SetlistCreationResponse> createSpotifySetlistFromSetlistFmByParam(@RequestParam("url") String url, @RequestParam("options") String options) throws MalformedURLException, NotFoundException, IndexOutOfBoundsException {
     String setlistFmId = SetlistUtils.getIdFromSetlistFmUrl(url);
-    return createSpotifySetlistFromSetlistFmById(setlistFmId);
-  }
-
-  @CrossOrigin
-  @RequestMapping("/create/{setlistFmId}")
-  public ResponseEntity<SetlistCreationResponse> createSpotifySetlistFromSetlistFmById(@PathVariable("setlistFmId") String setlistFmId) throws NotFoundException {
-    SetlistCreationResponse setlistCreationResponse = setlistCreator.createSetlist(setlistFmId);
+    SetlistCreationResponse setlistCreationResponse = setlistCreator.createSetlist(setlistFmId, options);
     return ResponseEntity.ok(setlistCreationResponse);
   }
 

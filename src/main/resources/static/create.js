@@ -29,10 +29,12 @@
     if (verifySetlistFmUrl(url)) {
       setFormDisabled(true);
 
-      fetch(`/create?url=${url}`)
+      let options = [...document.querySelectorAll('#options > input:checked')].map(e => e.id).join(",");
+
+      fetch(`/create?url=${url}&options=${options}`)
         .then(response => {
           if (response.status !== 200) {
-            throw "Couldn't find setlist or the given setlist is empty!";
+            throw "ERROR: Couldn't find setlist, the given setlist is empty, or none of the songs could be found on Spotify!";
           }
           return response.json();
         })
@@ -52,7 +54,7 @@
             let missedSongs = setlistCreationResponse.missedSongs;
             if (missedSongs > 0) {
               let plural = missedSongs !== 1;
-              alert(`${missedSongs} song${plural ? "s" : ""} couldn't be found on Spotify and ${plural ? "have" : "has"} been omitted from the playlist!`);
+              alert(`${missedSongs} song${plural ? "s" : ""} were ignored by options or couldn't be found on Spotify and ${plural ? "have" : "has"} been omitted from the playlist!`);
             }
           }, 2000)
 
@@ -70,18 +72,21 @@
   }
 
   function setFormDisabled(disabled) {
+    let options = document.getElementById("options");
     if (disabled) {
       active = true;
       inputField.setAttribute("disabled", "");
       submitButton.setAttribute("disabled", "");
       submitButton.innerHTML = "Creating Playlist...";
       spinner.classList.add("show");
+      options.classList.add("hide");
     } else {
       active = false;
       inputField.removeAttribute("disabled");
       submitButton.removeAttribute("disabled");
       submitButton.innerHTML = "Create Playlist";
       spinner.classList.remove("show");
+      options.classList.remove("hide");
     }
   }
 
@@ -89,8 +94,12 @@
     let counter = document.getElementById("counter");
     fetch("/counter")
       .then(result => result.text())
-      .then(text => counter.innerHTML = text);
+      .then(text => counter.innerHTML = numberWithCommas(text));
 
+  }
+
+  function numberWithCommas(number) {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 
   function setCopyrightYear() {

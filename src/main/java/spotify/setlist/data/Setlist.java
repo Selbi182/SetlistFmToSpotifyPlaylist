@@ -11,15 +11,15 @@ public class Setlist {
   private final String city;
   private final String venue;
   private final String tourName;
-  private final List<String> songNames;
+  private final List<Song> songs;
 
-  public Setlist(String artistName, LocalDate eventDate, String city, String venue, String tourName, List<String> songNames) {
+  public Setlist(String artistName, LocalDate eventDate, String city, String venue, String tourName, List<Song> songs) {
     this.artistName = artistName;
     this.eventDate = eventDate;
     this.city = city;
     this.venue = venue;
     this.tourName = tourName;
-    this.songNames = songNames;
+    this.songs = songs;
   }
 
   public String getArtistName() {
@@ -42,8 +42,8 @@ public class Setlist {
     return tourName;
   }
 
-  public List<String> getSongNames() {
-    return songNames;
+  public List<Song> getSongs() {
+    return songs;
   }
 
   @JsonIgnore
@@ -54,5 +54,47 @@ public class Setlist {
   @JsonIgnore
   public String venueAndCity() {
     return getVenue() + ", " + getCity();
+  }
+
+  public static class Song {
+    private final String songName;
+    private final String artistName;
+    private final String originalArtistName;
+    private final boolean tape;
+    private final boolean cover;
+    private final boolean medleyPart;
+
+    public Song(String songName, String artistName, String originalArtistName, boolean tape, boolean cover, boolean medleyPart) {
+      this.songName = songName;
+      this.artistName = artistName;
+      this.originalArtistName = originalArtistName;
+      this.tape = tape;
+      this.cover = cover;
+      this.medleyPart = medleyPart;
+    }
+
+    public String getSongName() {
+      return songName;
+    }
+
+    public String getArtistName() {
+      return artistName;
+    }
+
+    public String getOriginalArtistName() {
+      return originalArtistName;
+    }
+
+    public boolean isTape() {
+      return tape;
+    }
+
+    public boolean isCover() {
+      return cover;
+    }
+
+    public boolean isMedleyPart() {
+      return medleyPart;
+    }
   }
 }

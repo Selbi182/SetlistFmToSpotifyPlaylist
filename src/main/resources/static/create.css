@@ -92,6 +92,20 @@ header > div {
     display: none;
 }
 
+#options {
+    text-align: left;
+    width: fit-content;
+}
+
+#options.hide {
+    display: none;
+}
+
+#options > input {
+    width: 2vmin;
+    height: 2vmin;
+}
+
 #submit {
     font-size: 3vh;
     padding: 2vh;

@@ -3,7 +3,6 @@ package spotify.setlist.setlistfm;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -44,7 +43,7 @@ public class SetlistFmApi {
       String venue = venueJson.get("name").getAsString();
       String tourName = json.has("tour") ? json.get("tour").getAsJsonObject().get("name").getAsString() : "";
 
-      List<String> songNames = new ArrayList<>();
+      List<Setlist.Song> setlistSongs = new ArrayList<>();
       JsonArray asJsonArray = json.get("sets").getAsJsonObject().get("set").getAsJsonArray();
       if (asJsonArray.isEmpty()) {
         throw new IllegalStateException("Setlist mustn't be empty");
@@ -55,18 +54,26 @@ public class SetlistFmApi {
         for (JsonElement song : songs) {
           JsonObject songInfo = song.getAsJsonObject();
           String songName = songInfo.get("name").getAsString();
-          boolean isRedundantTape = songInfo.has("tape") && songInfo.get("tape").getAsBoolean() && (songInfo.has("cover") || songInfo.has("info"));
+          boolean isTape = songInfo.has("tape") && songInfo.get("tape").getAsBoolean();
+          boolean isCover = songInfo.has("cover");
           boolean isRedundantSong = songName.isBlank()
             || REGEX_INTRO.matcher(songName).find()
             || REGEX_SOLO.matcher(songName).find();
-          if (!isRedundantTape && !isRedundantSong) {
+          if (!isRedundantSong) {
             String[] medleyParts = songName.split(" / ");
-            songNames.addAll(Arrays.asList(medleyParts));
+            boolean isMedleyPart = medleyParts.length > 1;
+            for (String medleyPartOrSingleSong : medleyParts) {
+              String originalArtist = isCover
+                ? songInfo.get("cover").getAsJsonObject().get("name").getAsString()
+                : artistName;
+              Setlist.Song setlistSong = new Setlist.Song(medleyPartOrSingleSong, artistName, originalArtist, isTape, isCover, isMedleyPart);
+              setlistSongs.add(setlistSong);
+            }
           }
         }
       }
 
-      return new Setlist(artistName, eventDate, city, venue, tourName, songNames);
+      return new Setlist(artistName, eventDate, city, venue, tourName, setlistSongs);
     } catch (Exception e) {
       throw new NotFoundException("Setlist isn't valid");
     }

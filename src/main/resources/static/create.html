@@ -18,6 +18,16 @@
   </header>
   <div id="main">
     <input id="input" placeholder="Copy-paste a valid setlist.fm URL..." autocomplete="off">
+    <div id="options">
+      <input type="checkbox" id="tapes" name="tapes" checked>
+      <label for="tapes">Include songs played from tape</label>
+      <br>
+      <input type="checkbox" id="covers" name="covers" checked>
+      <label for="covers">Use original songs for covers (if official cover couldn't be found)</label>
+      <br>
+      <input type="checkbox" id="medleys" name="medleys" checked>
+      <label for="medleys">Include medleys (all songs get added)</label>
+    </div>
     <button id="submit" disabled>Create Playlist</button>
     <div id="format-info">
       <div id="format-info-header">A valid URL has the following format:</div>
