@@ -19,8 +19,6 @@ import spotify.setlist.util.SetlistUtils;
 
 @RestController
 public class SetlistController {
-  private static final String DEFAULT_OPTIONS = "tapes,covers,medleys";
-
   private final SetlistCreator setlistCreator;
 
   SetlistController(SetlistCreator setlistCreator) {
@@ -34,9 +32,7 @@ public class SetlistController {
 
   @CrossOrigin
   @RequestMapping("/create")
-  public ResponseEntity<SetlistCreationResponse> createSpotifySetlistFromSetlistFmByParam(
-      @RequestParam("url") String url,
-      @RequestParam(value = "options", defaultValue = DEFAULT_OPTIONS) String options)
+  public ResponseEntity<SetlistCreationResponse> createSpotifySetlistFromSetlistFmByParam(@RequestParam("url") String url, @RequestParam(value = "options") String options)
     throws MalformedURLException, NotFoundException, IndexOutOfBoundsException {
     String setlistFmId = SetlistUtils.getIdFromSetlistFmUrl(url);
     SetlistCreationResponse setlistCreationResponse = setlistCreator.createSetlist(setlistFmId, options);
