@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>setlist.fm to Spotify</title>
   <script src="create.js" type="module"></script>
   <link rel="stylesheet" href="create.css"/>
@@ -19,14 +22,22 @@
   <div id="main">
     <input id="input" placeholder="Copy-paste a valid setlist.fm URL..." autocomplete="off">
     <div id="options">
-      <input type="checkbox" id="tapes" name="tapes" checked>
-      <label for="tapes">Include songs played from tape</label>
-      <br>
-      <input type="checkbox" id="covers" name="covers" checked>
-      <label for="covers">Use original songs for covers (if official cover couldn't be found)</label>
-      <br>
-      <input type="checkbox" id="medleys" name="medleys" checked>
-      <label for="medleys">Include medleys (all songs get added)</label>
+      <div>
+        <input type="checkbox" id="tapes" name="tapes" checked>
+        <label for="tapes">Include songs played from tape</label>
+      </div>
+      <div>
+        <input type="checkbox" id="covers" name="covers" checked>
+        <label for="covers">Use original songs for covers</label>
+      </div>
+      <div>
+        <input type="checkbox" id="medleys" name="medleys" checked>
+        <label for="medleys">Include medleys</label>
+      </div>
+      <div>
+        <input type="checkbox" id="strict-search" name="strict-search">
+        <label for="strict-search">Require exact song matches</label>
+      </div>
     </div>
     <button id="submit" disabled>Create Playlist</button>
     <div id="format-info">

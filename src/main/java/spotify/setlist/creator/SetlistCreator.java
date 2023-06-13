@@ -1,5 +1,7 @@
 package spotify.setlist.creator;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -64,12 +66,22 @@ public class SetlistCreator {
 
   @PostConstruct
   void calculateExistingSetlists() {
-    refreshCreatedSetlistsCounter();
+    refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
   }
 
   @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.HOURS)
-  public void refreshCreatedSetlistsCounter() {
-    Integer total = SpotifyCall.execute(spotifyApi.getListOfCurrentUsersPlaylists()).getTotal();
+  public void refreshCreatedSetlistsCounterAndRemoveDeadPlaylists() {
+    List<PlaylistSimplified> allUserPlaylists = SpotifyCall.executePaging(spotifyApi.getListOfCurrentUsersPlaylists());
+
+    List<Callable<String>> toRemove = allUserPlaylists.stream()
+      .filter(pl -> (pl.getTracks().getTotal() == 0))
+      .map(pl -> (Callable<String>) () -> SpotifyCall.execute(spotifyApi.unfollowPlaylist(pl.getId())))
+      .collect(Collectors.toList());
+    if (!toRemove.isEmpty()) {
+      executorService.executeAndWait(toRemove);
+    }
+
+    int total = allUserPlaylists.size() - toRemove.size();
     createdSetlists.set(total);
   }
 
@@ -93,12 +105,14 @@ public class SetlistCreator {
     // Assemble the name for the playlist and search for each song on Spotify
     String setlistName = SetlistUtils.assemblePlaylistName(setlist);
     List<Track> songsFromSpotify = findSongsOnSpotify(setlist, options);
-    if (songsFromSpotify.isEmpty()) {
+    int totalSetlistSongsCount = setlist.getSongs().size();
+    int searchResultCount = songsFromSpotify.size();
+    if (songsFromSpotify.isEmpty() || searchResultCount < totalSetlistSongsCount / 2) {
       throw new NotFoundException("No songs found");
     }
 
     // Calculate missed songs (should be 0 ideally)
-    int missedSongs = setlist.getSongs().size() - songsFromSpotify.size();
+    int missedSongs = totalSetlistSongsCount - searchResultCount;
 
     // Search for existing playlists that match the name and tracks
     // If there is a match, return that instead one instead of creating an entirely new playlist
@@ -128,6 +142,7 @@ public class SetlistCreator {
     boolean includeTapes = splitOptions.contains("tapes");
     boolean includeCoverOriginals = splitOptions.contains("covers");
     boolean includeMedleys = splitOptions.contains("medleys");
+    boolean strictSearch = splitOptions.contains("strict-search");
 
     List<Callable<Track>> callables = new ArrayList<>();
     for (Setlist.Song song : setlist.getSongs()) {
@@ -135,7 +150,7 @@ public class SetlistCreator {
         if (!song.isTape() && !song.isMedleyPart()
           || song.isTape() && includeTapes
           || song.isMedleyPart() && includeMedleys) {
-          return searchTrack(song, includeCoverOriginals);
+          return searchTrack(song, includeCoverOriginals, strictSearch);
         }
         return null;
       });
@@ -145,10 +160,10 @@ public class SetlistCreator {
       .collect(Collectors.toList());
   }
 
-  public Track searchTrack(Setlist.Song song, boolean includeCoverOriginals) {
+  public Track searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
     String trackNameIdentifier = SpotifyUtils.strippedTitleIdentifier(song.getSongName());
 
-    String searchQuery = buildSearchQuery(song.getSongName(), song.isTape() ? song.getOriginalArtistName() : song.getArtistName());
+    String searchQuery = buildSearchQuery(song.getSongName(), song.isTape() ? song.getOriginalArtistName() : song.getArtistName(), strictSearch);
     Track[] searchResults = SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems();
 
     if (searchResults.length > 0) {
@@ -160,7 +175,7 @@ public class SetlistCreator {
         .findFirst()
         .orElse(searchResults[0]);
     } else if (song.isCover() && includeCoverOriginals) {
-      String fallbackSearchQuery = buildSearchQuery(song.getSongName(), song.getOriginalArtistName());
+      String fallbackSearchQuery = buildSearchQuery(song.getSongName(), song.getOriginalArtistName(), strictSearch);
 
       Track[] fallbackSearchResults = SpotifyCall.execute(spotifyApi.searchTracks(fallbackSearchQuery).limit(4)).getItems();
       if (fallbackSearchResults.length > 0) {
@@ -172,8 +187,12 @@ public class SetlistCreator {
     return null;
   }
 
-  private String buildSearchQuery(String songName, String artistName) {
-    return String.format("%s artist:%s", songName, artistName).replaceAll("'", "");  // due to a bug in the Spotify search algorithm, apostrophes cause weird behavior
+  private String buildSearchQuery(String songName, String artistName, boolean strictSearch) {
+    if (strictSearch) {
+      return String.format("track:%s artist:%s", songName, artistName).replaceAll("'", "");  // due to a bug in the Spotify search algorithm, apostrophes cause weird behavior
+    }
+
+    return URLEncoder.encode(artistName + " " + songName, StandardCharsets.UTF_8).replaceAll("\\+", "%20"); // TODO WIP might not need encoding at all once the API is fixed
   }
 
   private Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<Track> setlistTracks) {

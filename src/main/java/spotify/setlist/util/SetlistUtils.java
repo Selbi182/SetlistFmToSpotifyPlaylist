@@ -28,8 +28,8 @@ public class SetlistUtils {
   /**
    * Assemble the name for the setlist playlist in the following format:
    * <pre>Artist Name [Setlist] // Tour Name (Year)</pre>
-   * If there is no tour name, the "Venue, Country" will be used as fallback.
-   * If there is a tour name, but it doesn't contain "Tour", it will be appended.
+   * If there is a tour name, that will be used (plus the year if not within the tour name itself).
+   * If there is no tour name, "Venue, Country" will be used as fallback.
    * Names over 100 characters will be cut off.
    *
    * @param setlist the setlist object
@@ -40,13 +40,14 @@ public class SetlistUtils {
 
     final String tourOrVenue;
     if (setlist.hasTour()) {
-      String formattedTour = setlist.getTourName().replace(year, "").replaceAll("\\s+", " ").strip();
-      tourOrVenue = formattedTour + (formattedTour.toLowerCase().contains("tour") ? "" : " Tour");
+      tourOrVenue = setlist.getTourName().contains(year)
+        ? setlist.getTourName().replaceAll("\\s+", " ").strip()
+        : String.format("%s (%s)", setlist.getTourName(), year);
     } else {
-      tourOrVenue = setlist.venueAndCity();
+      tourOrVenue = String.format("%s (%s)", setlist.venueAndCity(), year);
     }
 
-    String setlistName = String.format("%s [Setlist] // %s (%s)", setlist.getArtistName(), tourOrVenue, year);
+    String setlistName = String.format("%s [Setlist] // %s", setlist.getArtistName(), tourOrVenue);
     return setlistName.substring(0, Math.min(setlistName.length(), MAX_PLAYLIST_NAME_LENGTH));
   }
 

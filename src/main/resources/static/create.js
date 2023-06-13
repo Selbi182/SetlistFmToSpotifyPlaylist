@@ -34,7 +34,7 @@
       fetch(`/create?url=${url}&options=${options}`)
         .then(response => {
           if (response.status !== 200) {
-            throw "ERROR: Couldn't find setlist, the given setlist is empty, or none of the songs could be found on Spotify!";
+            throw "ERROR: Couldn't find setlist, the given setlist is empty, or none of the songs could be found on Spotify. If you think this can't be, please let me know on GitHub or the forum page and I'll take a look at it!";
           }
           return response.json();
         })
@@ -54,7 +54,7 @@
             let missedSongs = setlistCreationResponse.missedSongs;
             if (missedSongs > 0) {
               let plural = missedSongs !== 1;
-              alert(`${missedSongs} song${plural ? "s" : ""} were ignored by options or couldn't be found on Spotify and ${plural ? "have" : "has"} been omitted from the playlist!`);
+              alert(`${missedSongs} song${plural ? "s" : ""} were ignored by options or couldn't be found on Spotify and ${plural ? "have" : "has"} been omitted from the playlist. If you think this can't be, please let me know on GitHub or the forum page and I'll take a look at it!`);
             }
           }, 2000)
 

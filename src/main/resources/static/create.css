@@ -95,15 +95,20 @@ header > div {
 #options {
     text-align: left;
     width: fit-content;
+    display: flex;
+    gap: 1vh;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    flex-direction: column;
 }
 
 #options.hide {
     display: none;
 }
 
-#options > input {
-    width: 2vmin;
-    height: 2vmin;
+#options input {
+    width: 3vh;
+    height: 3vh;
 }
 
 #submit {
@@ -159,5 +164,21 @@ footer > div {
     }
     to {
         transform: rotate(360deg);
+    }
+}
+
+
+@media only screen and (max-aspect-ratio: 3/2) {
+    body {
+        padding: 6vh;
+        overflow: auto;
+    }
+
+    #options > label {
+        font-size: 2vh;
+    }
+
+    #subtitle, footer {
+        font-size: 2vh;
     }
 }
