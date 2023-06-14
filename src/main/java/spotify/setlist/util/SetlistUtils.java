@@ -64,4 +64,21 @@ public class SetlistUtils {
     }
     return SETLIST_DESCRIPTION;
   }
+
+  /**
+   * Returns true if the shorter of the two given strings is contained at the start of the other string.
+   * Case is ignored
+   *
+   * @param a the first string
+   * @param b the second string
+   * @return true if yes
+   */
+  public static boolean isStartContained(String a, String b) {
+    a = a.toLowerCase();
+    b = b.toLowerCase();
+    if (a.length() > b.length()) {
+      return a.startsWith(b);
+    }
+    return b.startsWith(a);
+  }
 }

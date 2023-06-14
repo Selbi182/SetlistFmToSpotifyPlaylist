@@ -66,7 +66,7 @@
     }
   }
 
-  let regex = /https?:\/\/(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html/i;
+  let regex = /^https?:\/\/(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html$/i;
   function verifySetlistFmUrl(url) {
     return regex.test(url);
   }

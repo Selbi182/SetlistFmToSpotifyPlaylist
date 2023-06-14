@@ -22,21 +22,24 @@
   <div id="main">
     <input id="input" placeholder="Copy-paste a valid setlist.fm URL..." autocomplete="off">
     <div id="options">
-      <div>
+      <div id="options-headline">
+        Options &ndash; mouse over for details
+      </div>
+      <div title="Whether to include songs tagged as @Tape or not, including songs played from tape that are by other artists. These are the grayed-out songs in setlists.">
         <input type="checkbox" id="tapes" name="tapes" checked>
         <label for="tapes">Include songs played from tape</label>
       </div>
-      <div>
+      <div title="If an official cover by the band couldn't be found, the original song by the original artist will be used instead of simply leaving a blank in the playlist.">
         <input type="checkbox" id="covers" name="covers" checked>
         <label for="covers">Use original songs for covers</label>
       </div>
-      <div>
+      <div title="Songs that are separated by ' / ' (space-slash-space) will be split and added one after another. Otherwise, the entire medley will be left out.">
         <input type="checkbox" id="medleys" name="medleys" checked>
         <label for="medleys">Include medleys</label>
       </div>
-      <div>
-        <input type="checkbox" id="strict-search" name="strict-search">
-        <label for="strict-search">Require exact song matches</label>
+      <div title="Dictates which search logic should be used internally. If enabled, it's 'track:TRACKNAME artist:ARTISTNAME' instead of simply 'TRACKNAME ARTISTNAME'`' without special syntax. This prevents accidental additions by unrelated artists, but it struggles with songs that tend to have a lot of special characters. Consider disabling only if you get too many song misses.">
+        <input type="checkbox" id="strict-search" name="strict-search" checked>
+        <label for="strict-search">Strict search</label>
       </div>
     </div>
     <button id="submit" disabled>Create Playlist</button>

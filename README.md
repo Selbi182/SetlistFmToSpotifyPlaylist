@@ -14,8 +14,8 @@ Whether to include songs tagged as `@Tape` or not, including songs played from t
 If an official cover by the band couldn't be found, the original song by the original artist will be used instead of simply leaving a blank in the playlist.
 * **Include medleys**: \
 Songs that are separated by ` / ` (space-slash-space) will be split and added one after another. Otherwise, the entire medley will be left out.
-* **Require exact song matches**: \
-If enabled, song results must _exactly_ match the song names from setlist.fm. This prevents accidental additions by unrelated artists, but it struggles with songs that tend to have a lot of special characters. Consider disabling only if you get too many song misses. (More formally: If enabled, the search query is formatted as `track:TRACKNAME artist:ARTISTNAME` instead of simply `TRACKNAME ARTISTNAME`)
+* **Strict search**: \
+Dictates which search logic should be used internally. If enabled, it's `track:TRACKNAME artist:ARTISTNAME` instead of simply `TRACKNAME ARTISTNAME` without special syntax. This prevents accidental additions by unrelated artists, but it struggles with songs that tend to have a lot of special characters. Consider disabling only if you get too many song misses.
 
 ## How it works
 I'm pretty sure I'm not the first one with this idea, but I couldn't find anything that _just works_ without having to do a bunch of preparation first.

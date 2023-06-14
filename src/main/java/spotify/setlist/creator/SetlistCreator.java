@@ -1,7 +1,5 @@
 package spotify.setlist.creator;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -18,7 +16,6 @@ import javax.annotation.PostConstruct;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
@@ -161,38 +158,33 @@ public class SetlistCreator {
   }
 
   public Track searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
-    String trackNameIdentifier = SpotifyUtils.strippedTitleIdentifier(song.getSongName());
+    String queryArtistName = song.isTape() ? song.getOriginalArtistName() : song.getArtistName();
+    String searchQuery = buildSearchQuery(song.getSongName(), queryArtistName, strictSearch);
 
-    String searchQuery = buildSearchQuery(song.getSongName(), song.isTape() ? song.getOriginalArtistName() : song.getArtistName(), strictSearch);
-    Track[] searchResults = SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems();
+    List<Track> searchResults = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems());
 
-    if (searchResults.length > 0) {
-      return Arrays.stream(searchResults)
-        .filter(track -> {
-          String searchResultStripped = SpotifyUtils.strippedTitleIdentifier(track.getName());
-          return StringUtils.startsWithIgnoreCase(searchResultStripped, trackNameIdentifier);
-        })
+    if (!searchResults.isEmpty()) {
+      return searchResults.stream()
+        .filter(track -> queryArtistName.equals(SpotifyUtils.getFirstArtistName(track)))
+        .filter(track -> SetlistUtils.isStartContained(track.getName(), song.getSongName()))
         .findFirst()
-        .orElse(searchResults[0]);
+        .orElse(null);
     } else if (song.isCover() && includeCoverOriginals) {
-      String fallbackSearchQuery = buildSearchQuery(song.getSongName(), song.getOriginalArtistName(), strictSearch);
-
-      Track[] fallbackSearchResults = SpotifyCall.execute(spotifyApi.searchTracks(fallbackSearchQuery).limit(4)).getItems();
-      if (fallbackSearchResults.length > 0) {
-        Arrays.sort(fallbackSearchResults, Comparator.comparingInt(Track::getPopularity));
-        return fallbackSearchResults[fallbackSearchResults.length - 1];
+      String fallbackCoverSearchQuery = buildSearchQuery(song.getSongName(), song.getOriginalArtistName(), strictSearch);
+      Track[] fallbackCoverSearchResults = SpotifyCall.execute(spotifyApi.searchTracks(fallbackCoverSearchQuery).limit(4)).getItems();
+      if (fallbackCoverSearchResults.length > 0) {
+        Arrays.sort(fallbackCoverSearchResults, Comparator.comparingInt(Track::getPopularity));
+        return fallbackCoverSearchResults[fallbackCoverSearchResults.length - 1];
       }
     }
-
     return null;
   }
 
   private String buildSearchQuery(String songName, String artistName, boolean strictSearch) {
     if (strictSearch) {
-      return String.format("track:%s artist:%s", songName, artistName).replaceAll("'", "");  // due to a bug in the Spotify search algorithm, apostrophes cause weird behavior
+      return String.format("artist:%s track:%s", artistName, songName).replaceAll("'", ""); // due to a bug in the Spotify search algorithm, apostrophes cause weird behavior
     }
-
-    return URLEncoder.encode(artistName + " " + songName, StandardCharsets.UTF_8).replaceAll("\\+", "%20"); // TODO WIP might not need encoding at all once the API is fixed
+    return artistName + " " + songName;
   }
 
   private Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<Track> setlistTracks) {
