@@ -166,6 +166,7 @@ public class SetlistCreator {
     if (!searchResults.isEmpty()) {
       return searchResults.stream()
         .filter(track -> queryArtistName.equals(SpotifyUtils.getFirstArtistName(track)))
+        .filter(track -> !SetlistUtils.isShallowLive(track.getName()))
         .filter(track -> SetlistUtils.isStartContained(track.getName(), song.getSongName()))
         .findFirst()
         .orElse(null);

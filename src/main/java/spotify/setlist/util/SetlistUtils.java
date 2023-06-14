@@ -2,6 +2,7 @@ package spotify.setlist.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.regex.Pattern;
 
 import org.springframework.util.StringUtils;
 
@@ -9,8 +10,8 @@ import spotify.setlist.data.Setlist;
 
 public class SetlistUtils {
   private static final String SETLIST_DESCRIPTION = "Generated with: https://setlistfm.selbi.club";
-
   private static final int MAX_PLAYLIST_NAME_LENGTH = 100;
+  private static final Pattern LIVE_REGEX = Pattern.compile("[-(].*live", Pattern.CASE_INSENSITIVE);
 
   /**
    * Get the setlist ID from a setlist.fm URL.
@@ -92,5 +93,16 @@ public class SetlistUtils {
    */
   public static String removeSpecialCharacters(String str) {
     return str.replaceAll("[^\\p{L}\\p{Z}]", "");
+  }
+
+  /**
+   * A very shallow method to test for live songs. Returns true if the given song name
+   * contains the word "live" anywhere past the first hyphen or bracket, case-insensitive.
+   *
+   * @param songName the given song name
+   * @return true if it's a live song
+   */
+  public static boolean isShallowLive(String songName) {
+    return LIVE_REGEX.matcher(songName).find();
   }
 }
