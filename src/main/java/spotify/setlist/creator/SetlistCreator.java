@@ -182,7 +182,7 @@ public class SetlistCreator {
 
   private String buildSearchQuery(String songName, String artistName, boolean strictSearch) {
     if (strictSearch) {
-      return String.format("artist:%s track:%s", artistName, songName).replaceAll("'", ""); // due to a bug in the Spotify search algorithm, apostrophes cause weird behavior
+      return String.format("artist:%s track:%s", artistName, songName);
     }
     return artistName + " " + songName;
   }

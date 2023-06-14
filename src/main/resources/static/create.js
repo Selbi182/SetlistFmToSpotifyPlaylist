@@ -27,10 +27,9 @@
   submitButton.onclick = () => {
     let url = inputField.value;
     if (verifySetlistFmUrl(url)) {
+      let options = [...document.querySelectorAll('#options input:checked')].map(e => e.id).join(",");
+
       setFormDisabled(true);
-
-      let options = [...document.querySelectorAll('#options > input:checked')].map(e => e.id).join(",");
-
       fetch(`/create?url=${url}&options=${options}`)
         .then(response => {
           if (response.status !== 200) {

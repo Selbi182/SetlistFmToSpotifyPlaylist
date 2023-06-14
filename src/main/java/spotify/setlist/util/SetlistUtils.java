@@ -3,6 +3,8 @@ package spotify.setlist.util;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.springframework.util.StringUtils;
+
 import spotify.setlist.data.Setlist;
 
 public class SetlistUtils {
@@ -67,18 +69,28 @@ public class SetlistUtils {
 
   /**
    * Returns true if the shorter of the two given strings is contained at the start of the other string.
-   * Case is ignored
+   * Case is ignored and any non-white special characters are ignored.
    *
    * @param a the first string
    * @param b the second string
    * @return true if yes
    */
   public static boolean isStartContained(String a, String b) {
-    a = a.toLowerCase();
-    b = b.toLowerCase();
-    if (a.length() > b.length()) {
-      return a.startsWith(b);
+    a = removeSpecialCharacters(a);
+    b = removeSpecialCharacters(b);
+    if (a.length() >= b.length()) {
+      return StringUtils.startsWithIgnoreCase(a, b);
     }
-    return b.startsWith(a);
+    return StringUtils.startsWithIgnoreCase(b, a);
+  }
+
+  /**
+   * Removes all non-whitespace special characters from the given string.
+   *
+   * @param str the input string
+   * @return the stripped string
+   */
+  public static String removeSpecialCharacters(String str) {
+    return str.replaceAll("[^\\p{L}\\p{Z}]", "");
   }
 }
