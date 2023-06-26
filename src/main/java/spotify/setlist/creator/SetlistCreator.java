@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -19,9 +21,11 @@ import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
+import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
 import spotify.services.PlaylistService;
@@ -44,7 +48,11 @@ public class SetlistCreator {
   private final SpotifyOptimizedExecutorService executorService;
   private final SpotifyLogger logger;
 
-  private final AtomicInteger createdSetlists;
+  /**
+   * Maps setlist names to lists of playlist IDs
+   * (in case one setlist name has different setlists, such as different setlists each night despite being on the same tour)
+   */
+  private final Map<String, List<String>> createdSetlists;
 
   SetlistCreator(SpotifyApi spotifyApi, PlaylistService playlistService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, SpotifyLogger spotifyLogger) {
     this.spotifyApi = spotifyApi;
@@ -52,7 +60,7 @@ public class SetlistCreator {
     this.executorService = spotifyOptimizedExecutorService;
     this.logger = spotifyLogger;
 
-    this.createdSetlists = new AtomicInteger();
+    this.createdSetlists = new ConcurrentHashMap<>();
 
     String setlistFmApiToken = System.getenv(SETLIST_FM_API_TOKEN_ENV);
     if (setlistFmApiToken == null || setlistFmApiToken.isBlank()) {
@@ -66,9 +74,16 @@ public class SetlistCreator {
     refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
   }
 
-  @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.HOURS)
+  @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.DAYS)
   public void refreshCreatedSetlistsCounterAndRemoveDeadPlaylists() {
-    List<PlaylistSimplified> allUserPlaylists = SpotifyCall.executePaging(spotifyApi.getListOfCurrentUsersPlaylists());
+    List<PlaylistSimplified> allUserPlaylists = playlistService.getCurrentUsersPlaylists();
+
+    createdSetlists.clear();
+    for (PlaylistSimplified ps : allUserPlaylists) {
+      String name = ps.getName();
+      String id = ps.getId();
+      addSetlistToCache(name, id);
+    }
 
     List<Callable<String>> toRemove = allUserPlaylists.stream()
       .filter(pl -> (pl.getTracks().getTotal() == 0))
@@ -77,18 +92,23 @@ public class SetlistCreator {
     if (!toRemove.isEmpty()) {
       executorService.executeAndWait(toRemove);
     }
+  }
 
-    int total = allUserPlaylists.size() - toRemove.size();
-    createdSetlists.set(total);
+  private void addSetlistToCache(String name, String id) {
+    if (!createdSetlists.containsKey(name)) {
+      createdSetlists.put(name, new CopyOnWriteArrayList<>());
+    }
+    createdSetlists.get(name).add(id);
   }
 
   public int getSetlistCounter() {
-    return createdSetlists.get();
+    return createdSetlists.values().stream()
+      .mapToInt(List::size)
+      .sum();
   }
 
   /**
    * Create a setlist playlist from the given setlist.fm ID
-   *
    *
    * @param setlistFmId the setlist.fm ID
    * @param options any potential option flags (separated by comma)
@@ -130,7 +150,7 @@ public class SetlistCreator {
     // Log and return the result
     SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), missedSongs);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
-    createdSetlists.incrementAndGet();
+    addSetlistToCache(setlistName, targetPlaylist.getId());
     return setlistCreationResponse;
   }
 
@@ -189,13 +209,26 @@ public class SetlistCreator {
   }
 
   private Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<Track> setlistTracks) {
-    List<PlaylistSimplified> currentUsersPlaylists = playlistService.getCurrentUsersPlaylists();
-    for (PlaylistSimplified playlistSimplified : currentUsersPlaylists) {
-      if (playlistSimplified.getTracks().getTotal().equals(setlistTracks.size()) && Objects.equals(setlistName, playlistSimplified.getName())) {
-        Playlist playlist = playlistService.getPlaylist(playlistSimplified.getId());
-        List<Track> allPlaylistTracks = playlistService.getAllPlaylistSongs(playlist);
-        if (allPlaylistTracks.equals(setlistTracks)) {
-          return Optional.of(playlist);
+    List<String> playlistIdsForSetlistName = createdSetlists.get(setlistName);
+    if (playlistIdsForSetlistName == null || playlistIdsForSetlistName.isEmpty()) {
+      // This is the first time the playlist has been fetched
+      return Optional.empty();
+    } else {
+      // Setlist name has been found again, check if the playlist already exists
+      for (String playlistId : playlistIdsForSetlistName) {
+        Playlist playlist = playlistService.getPlaylist(playlistId);
+        List<PlaylistTrack> playlistTracks = Arrays.asList(playlist.getTracks().getItems());
+        if (setlistTracks.size() == playlistTracks.size()) {
+          List<String> currentSetlistTrackIds = setlistTracks.stream()
+            .map(Track::getId)
+            .collect(Collectors.toList());
+          List<String> existingPlaylistTrackIds = playlistTracks.stream()
+            .map(PlaylistTrack::getTrack)
+            .map(IPlaylistItem::getId)
+            .collect(Collectors.toList());
+          if (currentSetlistTrackIds.equals(existingPlaylistTrackIds)) {
+            return Optional.of(playlist);
+          }
         }
       }
     }
