@@ -14,32 +14,34 @@
 <body>
   <header>
     <div id="headline">setlist.fm to Spotify</div>
-    <div id="subtitle">
-      <div>Convert any setlist from <a href="https://www.setlist.fm">setlist.fm</a> to a Spotify playlist in seconds!</div>
-      <div id="counter"></div>
+    <div id="external-links">
+      <a href="https://open.spotify.com/user/31daa4vc625d7o3ldksnjnjafwxe" title="All playlists will be made publicly available on this Spotify profile">Spotify Profile</a>
+      &bull;
+      <a href="https://github.com/Selbi182/SetlistFmToSpotifyPlaylist" title="For more information, check out the GitHub page">GitHub</a>
+      &bull;
+      <a href="https://www.setlist.fm/forum/music/other-music-stuff/setlistfm-to-spotify-playlist-converter-7bd72e68" title="Forum topic on the setlist.fm forums, for direct feedback">Forum</a>
     </div>
+    <div id="counter"></div>
   </header>
   <div id="main">
     <input id="input" placeholder="Copy-paste a valid setlist.fm URL..." autocomplete="off">
     <div id="options">
-      <div id="options-headline">
-        Options &ndash; mouse over for details
-      </div>
+      <div id="detailed-options">Show detailed options...</div>
       <div title="Whether to include songs tagged as @Tape or not, including songs played from tape that are by other artists. These are the grayed-out songs in setlists.">
         <input type="checkbox" id="tapes" name="tapes" checked>
-        <label for="tapes">Include songs played from tape</label>
+        <label for="tapes">Tapes</label>
       </div>
       <div title="If an official cover by the band couldn't be found, the original song by the original artist will be used instead of simply leaving a blank in the playlist.">
         <input type="checkbox" id="covers" name="covers" checked>
-        <label for="covers">Use original songs for covers</label>
+        <label for="covers">Cover Originals</label>
       </div>
       <div title="Songs that are separated by ' / ' (space-slash-space) will be split and added one after another. Otherwise, the entire medley will be left out.">
         <input type="checkbox" id="medleys" name="medleys" checked>
-        <label for="medleys">Include medleys</label>
+        <label for="medleys">Medleys</label>
       </div>
-      <div title="Dictates which search logic should be used internally. If enabled, it's 'track:TRACKNAME artist:ARTISTNAME' instead of simply 'TRACKNAME ARTISTNAME'`' without special syntax. This prevents accidental additions by unrelated artists, but it struggles with songs that tend to have a lot of special characters. Consider disabling only if you get too many song misses.">
+      <div title="Dictates which search logic should be used internally. If disabled, it's simply the track title and the artist name of each individual song. Otherwise it follows the syntax 'track:NAME artist:NAME'. This prevents accidental additions by unrelated artists, but it struggles with songs that tend to have a lot of special characters. Consider disabling only if you get too many song misses.">
         <input type="checkbox" id="strict-search" name="strict-search" checked>
-        <label for="strict-search">Strict search</label>
+        <label for="strict-search">Strict Search</label>
       </div>
     </div>
     <button id="submit" disabled>Create Playlist</button>
@@ -51,14 +53,6 @@
     <div id="playlist-embed"></div>
   </div>
   <footer>
-    <div>
-      <a href="https://open.spotify.com/user/31daa4vc625d7o3ldksnjnjafwxe" title="All playlists will be made publicly available on this Spotify profile">Spotify Profile</a>
-      &bull;
-      <a href="https://github.com/Selbi182/SetlistFmToSpotifyPlaylist" title="For more information, check out the GitHub page">GitHub</a>
-      &bull;
-      <a href="https://www.setlist.fm/forum/music/other-music-stuff/setlistfm-to-spotify-playlist-converter-7bd72e68" title="Forum topic on the setlist.fm forums, for direct feedback">Forum</a>
-    </div>
-
     <div>This service is neither affiliated with nor endorsed by Spotify or setlist.fm.</div>
     <a href="https://selbi.club/" target="_blank">&copy; <span id="copyright-year">2023</span> Selbi</a>
   </footer>

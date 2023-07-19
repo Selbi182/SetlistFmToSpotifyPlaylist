@@ -11,6 +11,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -40,6 +41,8 @@ import spotify.util.SpotifyUtils;
 @EnableScheduling
 @Component
 public class SetlistCreator {
+  private static final Pattern STRING_PURIFICATION_REGEX = Pattern.compile("[^\\p{L}\\p{N}]");
+
   private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_fm_api_token";
   private final String setlistFmApiToken;
 
@@ -185,7 +188,7 @@ public class SetlistCreator {
 
     if (!searchResults.isEmpty()) {
       return searchResults.stream()
-        .filter(track -> queryArtistName.equals(SpotifyUtils.getFirstArtistName(track)))
+        .filter(track -> queryArtistName.equalsIgnoreCase(SpotifyUtils.getFirstArtistName(track)))
         .filter(track -> !SetlistUtils.isShallowLive(track.getName()))
         .filter(track -> SetlistUtils.isStartContained(track.getName(), song.getSongName()))
         .findFirst()
@@ -203,7 +206,10 @@ public class SetlistCreator {
 
   private String buildSearchQuery(String songName, String artistName, boolean strictSearch) {
     if (strictSearch) {
-      return String.format("artist:%s track:%s", artistName, songName);
+      // Replace all special characters with white space cause Spotify struggled with apostrophes and such during strict search
+      String artistNamePurified = STRING_PURIFICATION_REGEX.matcher(artistName).replaceAll(" ");
+      String songNamePurified = STRING_PURIFICATION_REGEX.matcher(songName).replaceAll(" ");
+      return String.format("artist:%s track:%s", artistNamePurified, songNamePurified);
     }
     return artistName + " " + songName;
   }

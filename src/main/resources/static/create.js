@@ -7,6 +7,7 @@
   let inputField = document.getElementById("input");
   let submitButton = document.getElementById("submit");
   let formatInfo = document.getElementById("format-info");
+  formatInfo.classList.add("hide");
   let spinner = document.getElementById("spinner");
   let playlistEmbed = document.getElementById("playlist-embed");
 
@@ -15,7 +16,7 @@
   inputField.oninput = (e) => {
     let url = e.target.value;
 
-    if (!active && verifySetlistFmUrl(url)) {
+    if (!active && isValidSetlistUrl(url)) {
       submitButton.removeAttribute("disabled");
       formatInfo.classList.add("hide");
     } else {
@@ -26,7 +27,7 @@
 
   submitButton.onclick = () => {
     let url = inputField.value;
-    if (verifySetlistFmUrl(url)) {
+    if (isValidSetlistUrl(url)) {
       let options = [...document.querySelectorAll('#options input:checked')].map(e => e.id).join(",");
 
       setFormDisabled(true);
@@ -65,8 +66,14 @@
     }
   }
 
+  let detailedOptionsButton = document.getElementById("detailed-options");
+  detailedOptionsButton.onclick = () => {
+    document.getElementById("options").classList.add("detailed");
+    detailedOptionsButton.classList.add("hide");
+  }
+
   let regex = /^https?:\/\/(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html$/i;
-  function verifySetlistFmUrl(url) {
+  function isValidSetlistUrl(url) {
     return regex.test(url);
   }
 

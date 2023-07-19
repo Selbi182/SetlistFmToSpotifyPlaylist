@@ -17,7 +17,7 @@ html, body {
     padding: 0;
     color: white;
     font-family: Roboto, Arial, sans-serif;
-    font-size: 3vh;
+    font-size: 1em;
     width: 100%;
     height: 100%;
     user-select: none;
@@ -30,13 +30,14 @@ html {
 
 body {
     background: radial-gradient(circle, transparent 20%, #00000080 100%), linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 100%), #86B146;
-    padding: 2vh;
+    padding: 2em;
     display: flex;
     flex-direction: column;
-    justify-content: space-around;
+    justify-content: center;
     align-items: center;
     text-align: center;
     overflow: hidden;
+    gap: 4em;
 }
 
 header {
@@ -44,47 +45,47 @@ header {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-}
-
-header > div {
-    margin: 1vh 0;
+    gap: 0.5em;
 }
 
 #headline {
     font-weight: bold;
-    font-size: 6vh;
-}
-
-#subtitle {
-    font-size: 3vh;
-    opacity: 0.85;
+    font-size: 3em;
 }
 
 #counter:empty {
-    visibility: hidden;
+    opacity: 0;
 }
 
 #counter {
+    font-size: 2em;
     font-weight: bold;
+    transition: opacity 1s;
+    transition-delay: 1s;
 }
 
 #counter::before {
     content: "Converted Setlists: ";
 }
 
+#external-links {
+    font-weight: initial;
+    font-size: 1.5em;
+}
 
 #main {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 2vh;
-    min-width: 65vw;
+    gap: 1em;
+    min-width: 65%;
+    max-width: 65%;
 }
 
 #input {
-    font-size: 3vh;
-    padding: 2vh;
+    font-size: 200%;
+    padding: 0.5em;
     width: 100%;
 }
 
@@ -93,33 +94,57 @@ header > div {
 }
 
 #options {
-    text-align: left;
+    text-align: center;
     width: fit-content;
     display: flex;
-    gap: 1vh;
+    gap: 0.5em 1.5em;
     flex-wrap: wrap;
+    font-size: 175%;
+    justify-content: center;
+    flex-direction: row;
+}
+
+#detailed-options {
+    width: 100%;
+    opacity: 0.5;
+    font-size: 75%;
+    cursor: pointer;
+    transition: opacity 0.5s;
+}
+
+#detailed-options:hover {
+    opacity: 1;
+}
+
+#detailed-options.hide {
+    display: none;
+}
+
+#options.detailed {
+    text-align: left;
     justify-content: space-around;
     flex-direction: column;
+    max-width: 65%;
 }
 
 #options.hide {
     display: none;
 }
 
-#options-headline {
-    font-size: 2vh;
-    text-align: center;
-    opacity: 0.5;
+#options input {
+    width: 2em;
+    height: 2em;
 }
 
-#options input {
-    width: 3vh;
-    height: 3vh;
+#options.detailed > div[title]:not([title=""])::after {
+    content: attr(title);
+    display: block;
+    font-size: 50%;
 }
 
 #submit {
-    font-size: 3vh;
-    padding: 2vh;
+    font-size: 2em;
+    padding: 0.5em;
     width: fit-content;
 }
 
@@ -129,7 +154,7 @@ header > div {
 
 #format-info {
     opacity: 0.65;
-    font-size: 2vh;
+    font-size: 100%;
 }
 
 #format-info.hide {
@@ -158,9 +183,12 @@ header > div {
     width: 100%;
 }
 
+footer {
+    font-size: 100%;
+}
 
 footer > div {
-    margin: 1vh 0;
+    margin: 0.25em 0;
 }
 
 
@@ -173,18 +201,9 @@ footer > div {
     }
 }
 
-
-@media only screen and (max-aspect-ratio: 3/2) {
+@media only screen and (max-aspect-ratio: 3/2), (min-aspect-ratio: 5/2) {
     body {
-        padding: 6vh;
+        justify-content: start;
         overflow: auto;
-    }
-
-    #options > label {
-        font-size: 2vh;
-    }
-
-    #subtitle, footer {
-        font-size: 2vh;
     }
 }
