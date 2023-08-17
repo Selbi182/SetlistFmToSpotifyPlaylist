@@ -187,12 +187,40 @@ public class SetlistCreator {
     List<Track> searchResults = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems());
 
     if (!searchResults.isEmpty()) {
-      return searchResults.stream()
+      List<Track> matchingSongs = searchResults.stream()
         .filter(track -> queryArtistName.equalsIgnoreCase(SpotifyUtils.getFirstArtistName(track)))
         .filter(track -> !SetlistUtils.isShallowLive(track.getName()))
-        .filter(track -> SetlistUtils.isStartContained(track.getName(), song.getSongName()))
-        .findFirst()
-        .orElse(null);
+        .filter(track -> SetlistUtils.containsIgnoreCase(track.getName(), song.getSongName()))
+        .collect(Collectors.toList());
+
+      if (matchingSongs.size() > 1) {
+        // If multiple songs containing the song name have been found, try to find the exact matching song
+
+        // Exact string match
+        for (Track track : matchingSongs) {
+           if (track.getName().equalsIgnoreCase(song.getSongName())) {
+            return track;
+          }
+        }
+
+        // Starts with match
+        for (Track track : matchingSongs) {
+          if (SetlistUtils.isStartContained(track.getName(), song.getSongName())) {
+            return track;
+          }
+        }
+
+        // Contains match (requires strict search to be off)
+        if (!strictSearch) {
+          for (Track track : matchingSongs) {
+            if (SetlistUtils.containsIgnoreCase(track.getName(), song.getSongName())) {
+              return track;
+            }
+          }
+        }
+      } else if (matchingSongs.size() == 1){
+        return matchingSongs.get(0);
+      }
     } else if (song.isCover() && includeCoverOriginals) {
       String fallbackCoverSearchQuery = buildSearchQuery(song.getSongName(), song.getOriginalArtistName(), strictSearch);
       Track[] fallbackCoverSearchResults = SpotifyCall.execute(spotifyApi.searchTracks(fallbackCoverSearchQuery).limit(4)).getItems();

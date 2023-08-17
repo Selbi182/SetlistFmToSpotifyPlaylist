@@ -69,6 +69,17 @@ public class SetlistUtils {
   }
 
   /**
+   * Returns true if the containedString is part of the baseString. Case is ignored.
+   *
+   * @param baseString the base string
+   * @param containedString the string to check if it's contained
+   * @return true if it's contained
+   */
+  public static boolean containsIgnoreCase(String baseString, String containedString) {
+    return baseString.toLowerCase().contains(containedString.toLowerCase());
+  }
+
+  /**
    * Returns true if the shorter of the two given strings is contained at the start of the other string.
    * Case is ignored and any non-white special characters are ignored.
    *
