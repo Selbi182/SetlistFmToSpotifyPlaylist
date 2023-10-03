@@ -50,7 +50,7 @@ header {
 
 #headline {
     font-weight: bold;
-    font-size: 3em;
+    font-size: 300%;
 }
 
 #counter:empty {
@@ -58,7 +58,7 @@ header {
 }
 
 #counter {
-    font-size: 2em;
+    font-size: 200%;
     font-weight: bold;
     transition: opacity 1s;
     transition-delay: 1s;
@@ -70,7 +70,7 @@ header {
 
 #external-links {
     font-weight: initial;
-    font-size: 1.5em;
+    font-size: 150%;
 }
 
 #main {
@@ -143,7 +143,7 @@ header {
 }
 
 #submit {
-    font-size: 2em;
+    font-size: 200%;
     padding: 0.5em;
     width: fit-content;
 }
@@ -202,8 +202,33 @@ footer > div {
 }
 
 @media only screen and (max-aspect-ratio: 3/2), (min-aspect-ratio: 5/2) {
+    html, body {
+        background: #56722d !important;
+    }
+
     body {
         justify-content: start;
         overflow: auto;
+        font-size: 0.75em;
+        padding: 1em;
+    }
+
+    #main {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    #input {
+        font-size: 150%;
+    }
+
+    #options {
+        flex-direction: column;
+        justify-content: start;
+        align-items: start;
+    }
+
+    #options.detailed > div[title]:not([title=""])::after {
+        font-size: 65%;
     }
 }
