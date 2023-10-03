@@ -4,6 +4,8 @@
 
   ///////////////////////
 
+  const validSetlistUrlRegex = /^https?:\/\/(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html$/i;
+
   let inputField = document.getElementById("input");
   let submitButton = document.getElementById("submit");
   let formatInfo = document.getElementById("format-info");
@@ -14,15 +16,7 @@
   let active = false;
 
   inputField.oninput = (e) => {
-    let url = e.target.value;
-
-    if (!active && isValidSetlistUrl(url)) {
-      submitButton.removeAttribute("disabled");
-      formatInfo.classList.add("hide");
-    } else {
-      submitButton.setAttribute("disabled", "");
-      formatInfo.classList.remove("hide");
-    }
+    verifyUrl(e.target.value);
   }
 
   submitButton.onclick = () => {
@@ -72,9 +66,26 @@
     detailedOptionsButton.classList.add("hide");
   }
 
-  let regex = /^https?:\/\/(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html$/i;
+  const urlParams = new URLSearchParams(window.location.search);
+  const autoSetlistUrl = urlParams.get('auto');
+  if (autoSetlistUrl && isValidSetlistUrl(autoSetlistUrl)) {
+    inputField.value = autoSetlistUrl;
+    verifyUrl(autoSetlistUrl);
+    submitButton.click();
+  }
+
   function isValidSetlistUrl(url) {
-    return regex.test(url);
+    return validSetlistUrlRegex.test(url);
+  }
+
+  function verifyUrl(url) {
+    if (!active && isValidSetlistUrl(url)) {
+      submitButton.removeAttribute("disabled");
+      formatInfo.classList.add("hide");
+    } else {
+      submitButton.setAttribute("disabled", "");
+      formatInfo.classList.remove("hide");
+    }
   }
 
   function setFormDisabled(disabled) {
