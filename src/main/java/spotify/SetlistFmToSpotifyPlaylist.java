@@ -19,14 +19,14 @@ public class SetlistFmToSpotifyPlaylist {
 	}
 
 	@Component
-	public static class SpotifyBigPictureScopes implements SpotifyDependenciesSettings {
+	public static class SetlistFmBotSpotifySettings implements SpotifyDependenciesSettings {
 		@Override
 		public List<String> requiredScopes() {
 			return List.of(
-					"playlist-modify-private",
-					"playlist-modify-public",
-					"user-read-private",
-					"ugc-image-upload"
+				"playlist-modify-private",
+				"playlist-modify-public",
+				"user-read-private",
+				"ugc-image-upload"
 			);
 		}
 
