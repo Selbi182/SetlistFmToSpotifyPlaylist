@@ -46,9 +46,18 @@
             refreshConvertedSetlistsCounter();
 
             let missedSongs = setlistCreationResponse.missedSongs;
-            if (missedSongs > 0) {
-              let plural = missedSongs !== 1;
-              alert(`${missedSongs} song${plural ? "s" : ""} were ignored by options or couldn't be found on Spotify and ${plural ? "have" : "has"} been omitted from the playlist. If you think this can't be, please let me know on GitHub or the forum page and I'll take a look at it!`);
+            if (missedSongs.length > 0) {
+              let missedSongsContainer = document.getElementById("missed-songs");
+              missedSongsContainer.classList.add("show");
+              missedSongsContainer.setAttribute("data-header-text", `Missed Songs (${missedSongs.length}):`);
+              for (let missedSong of missedSongs) {
+                let missedSongElem = document.createElement("tr");
+                missedSongElem.innerHTML = `<td class="missed-song-index">${missedSong.index}.</td><td class="missed-song-name">${missedSong.songName}</td>`;
+                missedSongsContainer.append(missedSongElem);
+              }
+
+              let plural = missedSongs.length !== 1;
+              alert(`${missedSongs.length} song${plural ? "s were" : " was"} ignored by options or couldn't be found on Spotify and ${plural ? "have" : "has"} been omitted from the playlist. If you think this can't be, please let me know on GitHub or the forum page and I'll take a look at it!`);
             }
           }, 2000)
 

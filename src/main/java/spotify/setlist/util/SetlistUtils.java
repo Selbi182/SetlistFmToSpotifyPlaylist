@@ -76,7 +76,7 @@ public class SetlistUtils {
    * @return the purified string
    */
   public static String purifyString(String input) {
-    return STRING_PURIFICATION_REGEX.matcher(input).replaceAll(" ");
+    return STRING_PURIFICATION_REGEX.matcher(input).replaceAll(" ").trim();
   }
 
   /**
@@ -109,6 +109,27 @@ public class SetlistUtils {
    */
   public static boolean containsIgnoreCase(String baseString, String containedString) {
     return baseString.toLowerCase().contains(containedString.toLowerCase());
+  }
+
+  /**
+   * Does a containsIgnoreCase check on the given input Strings.
+   * If that fails, it runs {@link SetlistUtils#purifyString} on both input strings
+   * before doing another containsIgnoreCase comparison.
+   * This method is required for really, really weird edge cases.
+   *
+   * @param baseString the base string
+   * @param containedString the string to check if it's contained
+   * @return true if it's contained
+   */
+  public static boolean containsIgnoreCaseNormalized(String baseString, String containedString) {
+    if (containsIgnoreCase(baseString, containedString)) {
+      // In 99% of all cases, this is already enough. String purification is only necessary on some very weird edge cases.
+      return true;
+    }
+
+    String string1Normalized = purifyString(baseString);
+    String string2Normalized = purifyString(containedString);
+    return containsIgnoreCase(string1Normalized, string2Normalized);
   }
 
   /**

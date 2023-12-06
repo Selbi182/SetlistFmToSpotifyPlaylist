@@ -1,11 +1,13 @@
 package spotify.setlist.data;
 
+import java.util.List;
+
 public class SetlistCreationResponse {
   private final Setlist setlist;
   private final String playlistId;
-  private final int missedSongs;
+  private final List<Setlist.SongWithIndex> missedSongs;
 
-  public SetlistCreationResponse(Setlist setlist, String playlistId, int missedSongs) {
+  public SetlistCreationResponse(Setlist setlist, String playlistId, List<Setlist.SongWithIndex> missedSongs) {
     this.setlist = setlist;
     this.playlistId = playlistId;
     this.missedSongs = missedSongs;
@@ -23,7 +25,7 @@ public class SetlistCreationResponse {
     return "https://open.spotify.com/playlist/" + getPlaylistId();
   }
 
-  public int getMissedSongs() {
+  public List<Setlist.SongWithIndex> getMissedSongs() {
     return missedSongs;
   }
 }

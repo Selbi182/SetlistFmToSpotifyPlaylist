@@ -183,6 +183,40 @@ header {
     width: 100%;
 }
 
+#missed-songs {
+    display: none;
+    flex-direction: column;
+    align-items: start;
+    font-size: 125%;
+}
+
+#missed-songs::before {
+    content: attr(data-header-text);
+    font-size: 125%;
+    font-weight: bold;
+    text-align: left;
+    width: 100%;
+    display: block;
+    margin-bottom: 0.5em;
+}
+
+#missed-songs.show {
+    display: initial;
+}
+
+#missed-songs td {
+    padding: 0 0.25em;
+}
+
+#missed-songs .missed-song-index {
+    font-weight: bold;
+    text-align: right;
+}
+
+#missed-songs .missed-song-name {
+    user-select: text;
+}
+
 footer {
     font-size: 100%;
 }

@@ -73,6 +73,10 @@ public class Setlist {
       this.medleyPart = medleyPart;
     }
 
+    public Song(Song song) {
+      this(song.getSongName(), song.getArtistName(), song.getOriginalArtistName(), song.isTape(), song.isCover(), song.isMedleyPart());
+    }
+
     public String getSongName() {
       return songName;
     }
@@ -95,6 +99,19 @@ public class Setlist {
 
     public boolean isMedleyPart() {
       return medleyPart;
+    }
+  }
+
+  public static class SongWithIndex extends Song {
+    private final int index;
+
+    public SongWithIndex(Song song, int index) {
+      super(song);
+      this.index = index;
+    }
+
+    public int getIndex() {
+      return index;
     }
   }
 }
