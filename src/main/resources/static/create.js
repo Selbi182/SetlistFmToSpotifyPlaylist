@@ -1,6 +1,7 @@
 (function() {
   setCopyrightYear();
   refreshConvertedSetlistsCounter();
+  createKofiButton();
 
   ///////////////////////
 
@@ -135,5 +136,18 @@
     copyrightYear.innerHTML = startYear < currentYear
       ? `${startYear} \u2013 ${currentYear}`
       : currentYear;
+  }
+
+  function createKofiButton() {
+    try {
+      kofiwidget2.init('Support Me On Ko-fi', '#1DB954', 'T6T8S1H5E');
+      let kofi = kofiwidget2.getHTML();
+      let body = document.body;
+      body.innerHTML += kofi;
+      let kofiButton = body.querySelector(".btn-container");
+      kofiButton.id = "kofi-button";
+    } catch (ex) {
+      console.error("Failed to load Ko-fi button", ex);
+    }
   }
 })();
