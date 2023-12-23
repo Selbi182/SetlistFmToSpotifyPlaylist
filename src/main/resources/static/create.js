@@ -1,7 +1,7 @@
 (function() {
   setCopyrightYear();
-  refreshConvertedSetlistsCounter();
   createKofiButton();
+  refreshConvertedSetlistsCounter();
 
   ///////////////////////
 
@@ -121,7 +121,8 @@
     let counter = document.getElementById("counter");
     fetch("/counter")
       .then(result => result.text())
-      .then(text => counter.innerHTML = numberWithCommas(text));
+      .then(text => counter.innerHTML = numberWithCommas(text))
+      .catch(ex => console.error(ex));
 
   }
 
@@ -140,12 +141,12 @@
 
   function createKofiButton() {
     try {
-      kofiwidget2.init('Support Me On Ko-fi', '#1DB954', 'T6T8S1H5E');
-      let kofi = kofiwidget2.getHTML();
-      let body = document.body;
-      body.innerHTML += kofi;
-      let kofiButton = body.querySelector(".btn-container");
-      kofiButton.id = "kofi-button";
+      // noinspection JSUnresolvedFunction
+      kofiwidget2.init('Support Me On Ko-fi!', '#1DB954', 'T6T8S1H5E');
+      // noinspection JSUnresolvedFunction
+      let kofiButton = kofiwidget2.getHTML();
+      let kofiButtonWrapper = document.getElementById("kofi-button");
+      kofiButtonWrapper.innerHTML += kofiButton;
     } catch (ex) {
       console.error("Failed to load Ko-fi button", ex);
     }

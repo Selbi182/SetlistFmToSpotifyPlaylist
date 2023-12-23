@@ -76,6 +76,7 @@ public class SetlistCreator {
     if (System.getenv("setlist_fm_bot_debug_mode") != null) {
       logger.info("Debug mode enabled, playlist counter calculation has been skipped!");
     } else {
+      logger.info("Calculating and cleaning up existing playlists... (this might take a while)");
       refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
     }
   }

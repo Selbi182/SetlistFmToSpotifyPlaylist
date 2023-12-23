@@ -29,15 +29,30 @@ html {
 }
 
 body {
-    background: radial-gradient(circle, transparent 20%, #00000080 100%), linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 100%), #86B146;
     padding: 2em;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+#background {
+    background: radial-gradient(circle, transparent 20%, #00000080 100%), linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 100%), #86B146;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+#content {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    overflow: hidden;
     gap: 4em;
+    min-width: 100%;
+    min-height: 100%;
 }
 
 header {
@@ -49,8 +64,15 @@ header {
 }
 
 #headline {
+    display: flex;
+    flex-wrap: wrap;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    gap: 0 0.5em;
     font-weight: bold;
     font-size: 300%;
+    margin-bottom: 0.25em;
 }
 
 #counter:empty {
@@ -225,6 +247,10 @@ footer > div {
     margin: 0.25em 0;
 }
 
+#kofi-button {
+    margin-top: 1em;
+}
+
 
 @keyframes rotating {
     from {
@@ -236,15 +262,15 @@ footer > div {
 }
 
 @media only screen and (max-aspect-ratio: 3/2), (min-aspect-ratio: 5/2) {
-    html, body {
-        background: #56722d !important;
-    }
-
     body {
-        justify-content: start;
         overflow: auto;
         font-size: 0.75em;
         padding: 1em;
+    }
+
+    #content {
+        justify-content: start;
+        gap: 3em;
     }
 
     #main {
@@ -264,5 +290,9 @@ footer > div {
 
     #options.detailed > div[title]:not([title=""])::after {
         font-size: 65%;
+    }
+
+    #kofi-button {
+        padding-bottom: 3em;
     }
 }
