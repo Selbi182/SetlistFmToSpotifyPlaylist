@@ -193,12 +193,12 @@ header {
 
 #spinner.show {
     display: inline-block;
-    border: 0.3vh solid white;
+    border: 0.2em solid white;
     border-top-color: transparent;
     border-radius: 50%;
     animation: rotating 1s linear infinite;
-    width: 3vh;
-    height: 3vh;
+    width: 2em;
+    height: 2em;
 }
 
 #playlist-embed {
