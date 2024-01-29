@@ -123,11 +123,13 @@ public class SetlistCreator {
    * @throws NotFoundException if either the setlist or any of its songs couldn't be found
    */
   public SetlistCreationResponse createSetlist(String setlistFmId, String options) throws NotFoundException {
+    long start = System.currentTimeMillis();
+
     // Find the setlist.fm setlist
     Setlist setlist = SetlistFmApi.getSetlist(setlistFmId, setlistFmApiToken);
 
     // Assemble the name for the playlist and search for each song on Spotify
-    String setlistName = SetlistUtils.assemblePlaylistName(setlist);
+    String setlistName = setlist.toString();
     List<Track> songsFromSpotify = findSongsOnSpotify(setlist, options);
     int totalSetlistSongsCount = setlist.getSongs().size();
     int searchResultCount = songsFromSpotify.size();
@@ -153,7 +155,8 @@ public class SetlistCreator {
     Optional<Playlist> existingSetlistPlaylist = searchForExistingSetlistPlaylist(setlistName, songsFromSpotify);
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
-      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), missedSongs);
+      long timeTaken = System.currentTimeMillis() - start;
+      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), missedSongs, timeTaken);
       logger.info(String.format("Existing setlist requested: %s - %s", existingPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
       return setlistCreationResponse;
     }
@@ -165,7 +168,8 @@ public class SetlistCreator {
     playlistService.addTracksToPlaylist(targetPlaylist, songsFromSpotify);
 
     // Log and return the result
-    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), missedSongs);
+    long timeTaken = System.currentTimeMillis() - start;
+    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), missedSongs, timeTaken);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
     addSetlistToCache(setlistName, targetPlaylist.getId());
     return setlistCreationResponse;
@@ -178,18 +182,20 @@ public class SetlistCreator {
     boolean includeMedleys = splitOptions.contains("medleys");
     boolean strictSearch = splitOptions.contains("strict-search");
 
-    List<Callable<Track>> callables = new ArrayList<>();
+    // This was originally done using SpotifyOptimizedExecutorService,
+    // but ironically enough, it is significantly faster in a simple for-loop,
+    // as it's less likely to cause 429 Too Many Requests errors this way.
+    List<Track> tracks = new ArrayList<>();
     for (Setlist.Song song : setlist.getSongs()) {
-      callables.add(() -> {
-        if (!song.isTape() && !song.isMedleyPart()
+      Track track = null;
+      if (!song.isTape() && !song.isMedleyPart()
           || song.isTape() && includeTapes
           || song.isMedleyPart() && includeMedleys) {
-          return searchTrack(song, includeCoverOriginals, strictSearch);
+          track = searchTrack(song, includeCoverOriginals, strictSearch);
         }
-        return null;
-      });
+      tracks.add(track);
     }
-    return executorService.executeAndWait(callables);
+    return tracks;
   }
 
   public Track searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
@@ -290,11 +296,16 @@ public class SetlistCreator {
   }
 
   private void attachArtistImage(Setlist setlist, Playlist targetPlaylist) {
-    Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(setlist.getArtistName())).getItems();
-    if (artists.length > 0) {
-      Artist artist = artists[0];
-      String image = SpotifyUtils.findLargestImage(artist.getImages());
-      playlistService.attachImageToPlaylist(targetPlaylist, image);
+    try {
+      Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(setlist.getArtistName())).getItems();
+      if (artists.length > 0) {
+        Artist artist = artists[0];
+        String image = SpotifyUtils.findLargestImage(artist.getImages());
+        playlistService.attachImageToPlaylist(targetPlaylist, image);
+      }
+    } catch (Exception e) {
+      logger.warning("Failed to attach artist image -- " + setlist);
+      e.printStackTrace();
     }
   }
 }

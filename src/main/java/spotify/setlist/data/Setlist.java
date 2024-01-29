@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import spotify.setlist.util.SetlistUtils;
+
 public class Setlist {
   private final String artistName;
   private final LocalDate eventDate;
@@ -54,6 +56,11 @@ public class Setlist {
   @JsonIgnore
   public String venueAndCity() {
     return getVenue() + ", " + getCity();
+  }
+
+  @Override
+  public String toString() {
+    return SetlistUtils.assemblePlaylistName(this);
   }
 
   public static class Song {

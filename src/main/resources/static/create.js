@@ -43,7 +43,10 @@
 
             let playlistId = setlistCreationResponse.playlistId;
             let playlistUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator`;
-            playlistEmbed.innerHTML = `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+            playlistEmbed.innerHTML =
+                `<div><a href="${setlistCreationResponse.playlistUrl}" target="_blank">${setlistCreationResponse.playlistUrl}</a> // Generated in ${(setlistCreationResponse.timeTaken / 1000).toFixed(1)}s</div>`
+              + `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+
             refreshConvertedSetlistsCounter();
 
             let missedSongs = setlistCreationResponse.missedSongs;
@@ -56,11 +59,8 @@
                 missedSongElem.innerHTML = `<td class="missed-song-index">${missedSong.index}.</td><td class="missed-song-name">${missedSong.songName}</td>`;
                 missedSongsContainer.append(missedSongElem);
               }
-
-              let plural = missedSongs.length !== 1;
-              alert(`${missedSongs.length} song${plural ? "s were" : " was"} ignored by options or couldn't be found on Spotify and ${plural ? "have" : "has"} been omitted from the playlist. If you think this can't be, please let me know on GitHub or the forum page and I'll take a look at it!`);
             }
-          }, 2000)
+          }, 1000)
 
         })
         .catch(ex => {

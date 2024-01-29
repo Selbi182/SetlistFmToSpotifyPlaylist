@@ -205,6 +205,12 @@ header {
     width: 100%;
 }
 
+#playlist-embed > div:first-child {
+    font-style: italic;
+    margin-bottom: 1em;
+    opacity: 0.65;
+}
+
 #missed-songs {
     display: none;
     flex-direction: column;
@@ -233,6 +239,10 @@ header {
 #missed-songs .missed-song-index {
     font-weight: bold;
     text-align: right;
+}
+
+#missed-songs .missed-song-name {
+    text-align: left;
 }
 
 #missed-songs .missed-song-name {
