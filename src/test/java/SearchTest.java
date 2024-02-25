@@ -1,4 +1,5 @@
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -73,6 +74,7 @@ public class SearchTest {
 
   private void testPositive(String artist, String title) {
     Track track = searchTrack(artist, title);
+    assertNotNull(track);
     assertEquals(artist, track.getArtists()[0].getName());
     assertTrue(SetlistUtils.isStartContained(track.getName(), title));
   }
@@ -90,6 +92,7 @@ public class SearchTest {
     testPositive("Finsterforst", "Ecce Homo");
     testPositive("HotWax", "Rip It Out");
     testPositive("D-A-D", "Evil Twin");
+    testPositive("Enter Shikari", "Sorry, You're Not a Winner");
   }
 
   @Test
