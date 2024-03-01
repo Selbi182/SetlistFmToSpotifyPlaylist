@@ -215,7 +215,7 @@ public class SetlistCreator {
     if (!searchResults.isEmpty()) {
       final String finalSongName = songName;
       List<Track> matchingSongs = searchResults.stream()
-        .filter(track -> SetlistUtils.equalsIgnoreCaseNormalized(queryArtistName, SpotifyUtils.getFirstArtistName(track)))
+        .filter(track -> SetlistUtils.isStartContained(queryArtistName, SpotifyUtils.getFirstArtistName(track)))
         .filter(track -> !SetlistUtils.isShallowLive(track.getName()))
         .filter(track -> SetlistUtils.containsIgnoreCaseNormalized(track.getName(), finalSongName))
         .collect(Collectors.toList());
