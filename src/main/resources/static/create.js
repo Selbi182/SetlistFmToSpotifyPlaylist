@@ -29,7 +29,15 @@
       fetch(`/create?url=${url}&options=${options}`)
         .then(response => {
           if (response.status !== 200) {
-            throw "ERROR: Couldn't find setlist, the given setlist is empty, or none of the songs could be found on Spotify. If you think this can't be, please let me know on GitHub or the forum page and I'll take a look at it!";
+            throw "ERROR: Failed to create playlist\n\n"
+            + "Possible reasons:\n"
+            + "\u2022 Couldn't find the setlist on setlist.fm\n"
+            + "\u2022 A majority of the songs (at least 50%) couldn't be found on Spotify\n"
+            + "\u2022 Songs on Spotify don't always have 100% accurate names\n"
+            + "\u2022 Special characters sometimes cause issues with Spotify's search logic\n\n"
+            + "Please retry the process with 'Strict Search' disabled. If the problem persists or if you believe it's a bug, "
+            + "PLEASE report the issue on GitHub or the setlist.fm forum along with a link to the problematic setlist, and I'll gladly take a look at it. "
+            + "Thank you!";
           }
           return response.json();
         })
@@ -44,8 +52,8 @@
             let playlistId = setlistCreationResponse.playlistId;
             let playlistUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator`;
             playlistEmbed.innerHTML =
-                `<div><a href="${setlistCreationResponse.playlistUrl}" target="_blank">${setlistCreationResponse.playlistUrl}</a> // Generated in ${(setlistCreationResponse.timeTaken / 1000).toFixed(1)}s</div>`
-              + `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+                `<div id="summary"><a href="${setlistCreationResponse.playlistUrl}" target="_blank">${setlistCreationResponse.playlistUrl}</a> // Generated in ${(setlistCreationResponse.timeTaken / 1000).toFixed(1)}s</div>`
+              + `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
 
             refreshConvertedSetlistsCounter();
 

@@ -132,7 +132,7 @@ public class SetlistCreator {
     String setlistName = setlist.toString();
     List<Track> songsFromSpotify = findSongsOnSpotify(setlist, options);
     int totalSetlistSongsCount = setlist.getSongs().size();
-    int searchResultCount = songsFromSpotify.size();
+    long searchResultCount = songsFromSpotify.stream().filter(Objects::nonNull).count();
     if (songsFromSpotify.isEmpty() || searchResultCount < totalSetlistSongsCount / 2) {
       throw new NotFoundException("No songs found");
     }
@@ -218,6 +218,7 @@ public class SetlistCreator {
         .filter(track -> SetlistUtils.isStartContained(queryArtistName, SpotifyUtils.getFirstArtistName(track)))
         .filter(track -> !SetlistUtils.isShallowLive(track.getName()))
         .filter(track -> SetlistUtils.containsIgnoreCaseNormalized(track.getName(), finalSongName))
+        .sorted(Comparator.comparing(t -> t.getAlbum().getReleaseDate()))
         .collect(Collectors.toList());
       if (matchingSongs.size() > 1) {
         // If multiple songs containing the song name have been found, try to find the exact matching song
@@ -229,7 +230,7 @@ public class SetlistCreator {
           }
         }
 
-        // Starts with match
+        // Starts-with match (purified)
         for (Track track : matchingSongs) {
           if (SetlistUtils.isStartContained(track.getName(), songName)) {
             return track;
@@ -305,7 +306,6 @@ public class SetlistCreator {
       }
     } catch (Exception e) {
       logger.warning("Failed to attach artist image -- " + setlist);
-      e.printStackTrace();
     }
   }
 }

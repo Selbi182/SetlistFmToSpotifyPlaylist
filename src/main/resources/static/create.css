@@ -205,10 +205,14 @@ header {
     width: 100%;
 }
 
-#playlist-embed > div:first-child {
+#summary {
     font-style: italic;
     margin-bottom: 1em;
     opacity: 0.65;
+}
+
+#summary:hover {
+    opacity: 1;
 }
 
 #missed-songs {

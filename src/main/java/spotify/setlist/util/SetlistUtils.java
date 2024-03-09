@@ -80,27 +80,6 @@ public class SetlistUtils {
   }
 
   /**
-   * Does an equalsIgnoreCase check on the given input Strings.
-   * If that fails, it runs {@link SetlistUtils#purifyString} on both input strings
-   * before doing another equalsIgnoreCase comparison.
-   * This method is required for really, really weird edge cases.
-   *
-   * @param string1 the first input string
-   * @param string2 the second input string
-   * @return true if both strings match
-   */
-  public static boolean equalsIgnoreCaseNormalized(String string1, String string2) {
-    if (string1.equalsIgnoreCase(string2)) {
-      // In 99% of all cases, this is already enough. String purification is only necessary on some very weird edge cases.
-      return true;
-    }
-
-    String string1Normalized = purifyString(string1);
-    String string2Normalized = purifyString(string2);
-    return string1Normalized.equalsIgnoreCase(string2Normalized);
-  }
-
-  /**
    * Returns true if the containedString is part of the baseString. Case is ignored.
    *
    * @param baseString the base string
@@ -141,22 +120,17 @@ public class SetlistUtils {
    * @return true if yes
    */
   public static boolean isStartContained(String a, String b) {
-    a = removeSpecialCharacters(a);
-    b = removeSpecialCharacters(b);
+    if (a.equals(b)) {
+      // Shortcut for most cases
+      return true;
+    }
+
+    a = purifyString(a);
+    b = purifyString(b);
     if (a.length() >= b.length()) {
       return StringUtils.startsWithIgnoreCase(a, b);
     }
     return StringUtils.startsWithIgnoreCase(b, a);
-  }
-
-  /**
-   * Removes all non-whitespace special characters from the given string.
-   *
-   * @param str the input string
-   * @return the stripped string
-   */
-  public static String removeSpecialCharacters(String str) {
-    return str.replaceAll("[^\\p{L}\\p{Z}]", "");
   }
 
   /**
