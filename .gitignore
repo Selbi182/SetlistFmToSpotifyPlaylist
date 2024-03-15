@@ -39,3 +39,4 @@ build/
 /spring.log
 spotifybot.properties
 deploy.sh
+/application.properties

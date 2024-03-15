@@ -15,12 +15,14 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
 import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
@@ -41,14 +43,16 @@ import spotify.util.SpotifyUtils;
 @EnableScheduling
 @Component
 public class SetlistCreator {
-
-  private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_fm_api_token";
-  private final String setlistFmApiToken;
+  private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_bot.setlist_fm_api_token";
+  private static final String SETLIST_FM_DEBUG_ENV = "setlist_bot.debug_mode";
 
   private final SpotifyApi spotifyApi;
   private final PlaylistService playlistService;
   private final SpotifyOptimizedExecutorService executorService;
   private final SpotifyLogger logger;
+  private final Environment environment;
+
+  private String setlistFmApiToken;
 
   /**
    * Maps setlist names to lists of playlist IDs
@@ -56,25 +60,29 @@ public class SetlistCreator {
    */
   private final Map<String, List<String>> createdSetlists;
 
-  SetlistCreator(SpotifyApi spotifyApi, PlaylistService playlistService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, SpotifyLogger spotifyLogger) {
+  SetlistCreator(SpotifyApi spotifyApi, PlaylistService playlistService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, SpotifyLogger spotifyLogger, Environment environment) {
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
     this.executorService = spotifyOptimizedExecutorService;
     this.logger = spotifyLogger;
+    this.environment = environment;
 
     this.createdSetlists = new ConcurrentHashMap<>();
-
-    String setlistFmApiToken = System.getenv(SETLIST_FM_API_TOKEN_ENV);
-    if (setlistFmApiToken == null || setlistFmApiToken.isBlank()) {
-      throw new IllegalStateException(SETLIST_FM_API_TOKEN_ENV + " environment variable is missing!");
-    }
-    this.setlistFmApiToken = setlistFmApiToken;
   }
 
   @PostConstruct
-  void calculateExistingSetlists() {
-    if (System.getenv("setlist_fm_bot_debug_mode") != null) {
-      logger.info("Debug mode enabled, playlist counter calculation has been skipped!");
+  void init() {
+    String setlistFmApiToken = environment.getProperty(SETLIST_FM_API_TOKEN_ENV);
+    if (setlistFmApiToken == null || setlistFmApiToken.isBlank()) {
+      throw new IllegalStateException(SETLIST_FM_API_TOKEN_ENV + " environment variable is missing!");
+    } else {
+      this.setlistFmApiToken = setlistFmApiToken;
+      logger.info("setlist.fm API token set!");
+    }
+
+    String debugModeEnv = environment.getProperty(SETLIST_FM_DEBUG_ENV);
+    if ("true".equals(debugModeEnv)) {
+      logger.warning("Debug mode enabled, playlist counter calculation has been skipped!");
     } else {
       logger.info("Calculating and cleaning up existing playlists... (this might take a while)");
       refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
@@ -223,6 +231,14 @@ public class SetlistCreator {
       if (matchingSongs.size() > 1) {
         // If multiple songs containing the song name have been found, try to find the exact matching song
 
+        // Where possible, try to find songs from official artist's albums first
+        for (Track track : matchingSongs) {
+          String firstArtistName = SpotifyUtils.getFirstArtistName(track.getAlbum());
+          if (AlbumType.ALBUM.equals(track.getAlbum().getAlbumType()) && SetlistUtils.isStartContained(queryArtistName, firstArtistName) && SetlistUtils.isStartContained(track.getName(), songName)) {
+            return track;
+          }
+        }
+
         // Exact string match
         for (Track track : matchingSongs) {
            if (track.getName().equalsIgnoreCase(songName)) {
@@ -297,14 +313,23 @@ public class SetlistCreator {
   }
 
   private void attachArtistImage(Setlist setlist, Playlist targetPlaylist) {
+    attachArtistImage(setlist, targetPlaylist, 10);
+  }
+
+  private void attachArtistImage(Setlist setlist, Playlist targetPlaylist, int remainingAttempts) {
     try {
-      Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(setlist.getArtistName())).getItems();
-      if (artists.length > 0) {
-        Artist artist = artists[0];
-        String image = SpotifyUtils.findLargestImage(artist.getImages());
-        playlistService.attachImageToPlaylist(targetPlaylist, image);
+      if (remainingAttempts > 0) {
+        Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(setlist.getArtistName())).getItems();
+        if (artists.length > 0) {
+          Artist artist = artists[0];
+          String image = SpotifyUtils.findLargestImage(artist.getImages());
+          playlistService.attachImageToPlaylist(targetPlaylist, image);
+        }
       }
     } catch (Exception e) {
+      attachArtistImage(setlist, targetPlaylist, remainingAttempts - 1);
+    }
+    if (remainingAttempts <= 0) {
       logger.warning("Failed to attach artist image -- " + setlist);
     }
   }
