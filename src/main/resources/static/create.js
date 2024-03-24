@@ -1,9 +1,33 @@
+/**
+ * @typedef {Object} SetlistCreationResponse
+ * @property {string} songName
+ * @property {string} playlistId
+ * @property {string} playlistUrl
+ * @property {number} timeTaken
+ * @property {number} missedSongs
+ */
+
 (function() {
   setCopyrightYear();
   createKofiButton();
-  refreshConvertedSetlistsCounter();
+  document.getElementById("counter").classList.add("show");
 
   ///////////////////////
+
+  const errorText =
+    `ERROR: Failed to create playlist!
+
+    Possible reasons:
+    \u2022 Couldn't find the setlist on setlist.fm
+    \u2022 More than half of the of the songs couldn't be found on Spotify
+    \u2022 Songs on Spotify don't always have accurate names
+    \u2022 Special characters sometimes cause issues with Spotify's search logic
+        
+    Please retry the process with 'Strict Search' disabled.
+    
+    If the problem persists or if you believe it's a bug, PLEASE report the issue on GitHub or the setlist.fm forum along with a link to the problematic setlist, and I'll gladly take a look at it.
+    
+    Thank you!`.split('\n').map(line => line.trim()).join('\n');
 
   const validSetlistUrlRegex = /^https?:\/\/(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html$/i;
 
@@ -29,15 +53,7 @@
       fetch(`/create?url=${url}&options=${options}`)
         .then(response => {
           if (response.status !== 200) {
-            throw "ERROR: Failed to create playlist\n\n"
-            + "Possible reasons:\n"
-            + "\u2022 Couldn't find the setlist on setlist.fm\n"
-            + "\u2022 A majority of the songs (at least 50%) couldn't be found on Spotify\n"
-            + "\u2022 Songs on Spotify don't always have 100% accurate names\n"
-            + "\u2022 Special characters sometimes cause issues with Spotify's search logic\n\n"
-            + "Please retry the process with 'Strict Search' disabled. If the problem persists or if you believe it's a bug, "
-            + "PLEASE report the issue on GitHub or the setlist.fm forum along with a link to the problematic setlist, and I'll gladly take a look at it. "
-            + "Thank you!";
+            throw errorText;
           }
           return response.json();
         })

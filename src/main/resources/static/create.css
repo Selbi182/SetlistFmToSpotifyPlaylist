@@ -75,15 +75,15 @@ header {
     margin-bottom: 0.25em;
 }
 
-#counter:empty {
-    opacity: 0;
-}
-
 #counter {
     font-size: 200%;
     font-weight: bold;
+    opacity: 0;
     transition: opacity 1s;
-    transition-delay: 1s;
+}
+
+#counter.show {
+    opacity: 1;
 }
 
 #counter::before {

@@ -2,9 +2,11 @@ package spotify.setlist;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.concurrent.Semaphore;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,24 +21,41 @@ import spotify.setlist.util.SetlistUtils;
 
 @RestController
 public class SetlistController {
+  private final Semaphore semaphore;
+
   private final SetlistCreator setlistCreator;
+  private final long bootTime;
 
   SetlistController(SetlistCreator setlistCreator) {
+    final int MAX_CONCURRENT_REQUESTS = 5;
+    this.semaphore = new Semaphore(MAX_CONCURRENT_REQUESTS);
     this.setlistCreator = setlistCreator;
+    this.bootTime = System.currentTimeMillis();
   }
 
   @RequestMapping("/")
-  public ModelAndView creationModel() {
-    return new ModelAndView("create.html");
+  public ModelAndView converter(Model model) {
+    model.addAttribute("bootTime", bootTime);
+    model.addAttribute("playlistCount", setlistCreator.getSetlistCounterFormatted());
+    return new ModelAndView("converter.html");
   }
 
   @CrossOrigin
   @RequestMapping("/create")
   public ResponseEntity<SetlistCreationResponse> createSpotifySetlistFromSetlistFmByParam(@RequestParam("url") String url, @RequestParam(value = "options") String options)
     throws MalformedURLException, NotFoundException, IndexOutOfBoundsException {
-    String setlistFmId = SetlistUtils.getIdFromSetlistFmUrl(url);
-    SetlistCreationResponse setlistCreationResponse = setlistCreator.createSetlist(setlistFmId, options);
-    return ResponseEntity.ok(setlistCreationResponse);
+    try {
+      semaphore.acquire();
+      String setlistFmId = SetlistUtils.getIdFromSetlistFmUrl(url);
+      SetlistCreationResponse setlistCreationResponse = setlistCreator.createSetlist(setlistFmId, options);
+      return ResponseEntity.ok(setlistCreationResponse);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      e.printStackTrace();
+      return ResponseEntity.internalServerError().body(null);
+    } finally {
+      semaphore.release();
+    }
   }
 
   @CrossOrigin

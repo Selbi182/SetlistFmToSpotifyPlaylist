@@ -1,5 +1,6 @@
 package spotify.setlist.creator;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -36,6 +37,7 @@ import spotify.setlist.data.Setlist;
 import spotify.setlist.data.SetlistCreationResponse;
 import spotify.setlist.setlistfm.SetlistFmApi;
 import spotify.setlist.util.SetlistUtils;
+import spotify.spring.SpringPortConfig;
 import spotify.util.SpotifyLogger;
 import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.SpotifyUtils;
@@ -51,6 +53,7 @@ public class SetlistCreator {
   private final SpotifyOptimizedExecutorService executorService;
   private final SpotifyLogger logger;
   private final Environment environment;
+  private final int port;
 
   private String setlistFmApiToken;
 
@@ -60,14 +63,23 @@ public class SetlistCreator {
    */
   private final Map<String, List<String>> createdSetlists;
 
-  SetlistCreator(SpotifyApi spotifyApi, PlaylistService playlistService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, SpotifyLogger spotifyLogger, Environment environment) {
+  private final DecimalFormat decimalFormat;
+
+  SetlistCreator(SpotifyApi spotifyApi,
+      PlaylistService playlistService,
+      SpotifyOptimizedExecutorService spotifyOptimizedExecutorService,
+      SpotifyLogger spotifyLogger,
+      Environment environment,
+      SpringPortConfig springPortConfig) {
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
     this.executorService = spotifyOptimizedExecutorService;
     this.logger = spotifyLogger;
     this.environment = environment;
+    this.port = springPortConfig.getPort();
 
     this.createdSetlists = new ConcurrentHashMap<>();
+    this.decimalFormat = new DecimalFormat("#,###");
   }
 
   @PostConstruct
@@ -87,6 +99,7 @@ public class SetlistCreator {
       logger.info("Calculating and cleaning up existing playlists... (this might take a while)");
       refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
     }
+    logger.info("Booted up! http://localhost:" + port);
   }
 
   @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.DAYS)
@@ -122,6 +135,9 @@ public class SetlistCreator {
       .sum();
   }
 
+  public String getSetlistCounterFormatted() {
+    return decimalFormat.format(getSetlistCounter());
+  }
   /**
    * Create a setlist playlist from the given setlist.fm ID
    *

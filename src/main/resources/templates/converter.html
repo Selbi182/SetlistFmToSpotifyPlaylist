@@ -1,15 +1,25 @@
 <!DOCTYPE html>
-<html lang="en-us">
+<html xmlns:th="http://www.thymeleaf.org" lang="en-us">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4VY3DTLHVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-4VY3DTLHVH');
+  </script>
+  <!-- Google tag (gtag.js) -->
+
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>setlist.fm to Spotify</title>
-  <script src="create.js" type="module"></script>
+  <script th:src="@{'/create.js?' + ${bootTime}}" type="module"></script>
   <script type='text/javascript' src="https://storage.ko-fi.com/cdn/widget/Widget_2.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <link rel="stylesheet" href="create.css"/>
+  <link rel="stylesheet" th:href="@{'/create.css?' + ${bootTime}}"/>
   <link rel="icon" href="favicon.png" type="image/x-icon">
 
   <meta name="title" content="setlist.fm to Spotify" />
@@ -41,7 +51,7 @@
         &bull;
         <a href="https://greasyfork.org/de/scripts/476640-setlist-fm-to-spotify-playlist-one-click-button" title="A userscript to convert setlists in one click (requires a UserScript browser addon, such as ViolentMonkey)">One&#8209;Click&nbsp;UserScript</a>
       </div>
-      <a id="counter" href="https://open.spotify.com/user/31daa4vc625d7o3ldksnjnjafwxe/playlists"></a>
+      <a id="counter" href="https://open.spotify.com/user/31daa4vc625d7o3ldksnjnjafwxe/playlists" th:text="${playlistCount}"></a>
     </header>
     <div id="main">
       <input id="input" placeholder="Copy-paste a valid setlist.fm URL..." autocomplete="off">
@@ -74,7 +84,7 @@
       <table id="missed-songs"></table>
     </div>
     <footer>
-      <div>This service is neither affiliated with nor endorsed by Spotify or setlist.fm.</div>
+      <div>This service is neither affiliated with nor endorsed by Spotify<sup>&reg;</sup> or setlist.fm<sup>&trade;</sup></div>
       <a href="https://selbi.club/" target="_blank">&copy; <span id="copyright-year">2023</span> Selbi</a>
       <div id="kofi-button"></div>
     </footer>
