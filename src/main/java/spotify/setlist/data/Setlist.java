@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import spotify.setlist.util.SetlistUtils;
 
+@SuppressWarnings("unused")
 public class Setlist {
   private final String artistName;
   private final LocalDate eventDate;
@@ -64,6 +65,7 @@ public class Setlist {
   }
 
   public static class Song {
+    private final int index;
     private final String songName;
     private final String artistName;
     private final String originalArtistName;
@@ -71,7 +73,8 @@ public class Setlist {
     private final boolean cover;
     private final boolean medleyPart;
 
-    public Song(String songName, String artistName, String originalArtistName, boolean tape, boolean cover, boolean medleyPart) {
+    public Song(int index, String songName, String artistName, String originalArtistName, boolean tape, boolean cover, boolean medleyPart) {
+      this.index = index;
       this.songName = songName;
       this.artistName = artistName;
       this.originalArtistName = originalArtistName;
@@ -81,7 +84,11 @@ public class Setlist {
     }
 
     public Song(Song song) {
-      this(song.getSongName(), song.getArtistName(), song.getOriginalArtistName(), song.isTape(), song.isCover(), song.isMedleyPart());
+      this(song.getIndex(), song.getSongName(), song.getArtistName(), song.getOriginalArtistName(), song.isTape(), song.isCover(), song.isMedleyPart());
+    }
+
+    public int getIndex() {
+      return index;
     }
 
     public String getSongName() {
@@ -106,19 +113,6 @@ public class Setlist {
 
     public boolean isMedleyPart() {
       return medleyPart;
-    }
-  }
-
-  public static class SongWithIndex extends Song {
-    private final int index;
-
-    public SongWithIndex(Song song, int index) {
-      super(song);
-      this.index = index;
-    }
-
-    public int getIndex() {
-      return index;
     }
   }
 }

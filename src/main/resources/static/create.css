@@ -5,7 +5,7 @@
 a, a:visited, a:hover, a:active {
     text-decoration: none;
     color: #C1FF66;
-    transition: color 0.5s;
+    transition: color var(--transition);
 }
 
 a:hover {
@@ -26,6 +26,7 @@ html, body {
 
 html {
     background: #86B146;
+    --transition: 0.25s;
 }
 
 body {
@@ -79,7 +80,6 @@ header {
     font-size: 200%;
     font-weight: bold;
     opacity: 0;
-    transition: opacity 1s;
 }
 
 #counter.show {
@@ -131,7 +131,7 @@ header {
     opacity: 0.5;
     font-size: 75%;
     cursor: pointer;
-    transition: opacity 0.5s;
+    transition: opacity var(--transition);
 }
 
 #detailed-options:hover {
@@ -207,22 +207,27 @@ header {
 
 #summary {
     font-style: italic;
-    margin-bottom: 1em;
+    margin-top: 1em;
     opacity: 0.65;
+    transition: opacity var(--transition);
 }
 
 #summary:hover {
     opacity: 1;
 }
 
-#missed-songs {
+#search-results {
     display: none;
     flex-direction: column;
     align-items: start;
     font-size: 125%;
+    border-collapse: collapse;
+    background: #0002;
+    padding: 1em;
+    border-radius: 1em;
 }
 
-#missed-songs::before {
+#search-results::before {
     content: attr(data-header-text);
     font-size: 125%;
     font-weight: bold;
@@ -232,25 +237,51 @@ header {
     margin-bottom: 0.5em;
 }
 
-#missed-songs.show {
+#search-results.show {
     display: initial;
 }
 
-#missed-songs td {
+#search-results tr {
+    transition: background-color var(--transition);
+}
+
+#search-results tr:hover {
+    background-color: #fff2;
+}
+
+#search-results tr.collapse {
+    display: none;
+}
+
+#search-results td {
     padding: 0 0.25em;
 }
 
-#missed-songs .missed-song-index {
+#search-results .search-result-index {
     font-weight: bold;
     text-align: right;
 }
 
-#missed-songs .missed-song-name {
+#search-results .search-result-name {
     text-align: left;
+    user-select: text;
 }
 
-#missed-songs .missed-song-name {
-    user-select: text;
+#search-results .search-result-type {
+    opacity: 0.5;
+    text-align: right;
+}
+
+#full-summary-button {
+    cursor: pointer;
+    text-align: left;
+    margin-top: 0.5em;
+    opacity: 0.5;
+    transition: opacity var(--transition);
+}
+
+#full-summary-button:hover {
+    opacity: 1;
 }
 
 footer {
@@ -304,6 +335,10 @@ footer > div {
 
     #options.detailed > div[title]:not([title=""])::after {
         font-size: 65%;
+    }
+
+    wbr {
+        display: block;
     }
 
     #kofi-button {

@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,6 +34,7 @@ import spotify.api.SpotifyCall;
 import spotify.services.PlaylistService;
 import spotify.setlist.data.Setlist;
 import spotify.setlist.data.SetlistCreationResponse;
+import spotify.setlist.data.TrackSearchResult;
 import spotify.setlist.setlistfm.SetlistFmApi;
 import spotify.setlist.util.SetlistUtils;
 import spotify.spring.SpringPortConfig;
@@ -154,33 +154,27 @@ public class SetlistCreator {
 
     // Assemble the name for the playlist and search for each song on Spotify
     String setlistName = setlist.toString();
-    List<Track> songsFromSpotify = findSongsOnSpotify(setlist, options);
+    List<TrackSearchResult> spotifySearchResults = findSongsOnSpotify(setlist, options);
     int totalSetlistSongsCount = setlist.getSongs().size();
-    long searchResultCount = songsFromSpotify.stream().filter(Objects::nonNull).count();
-    if (songsFromSpotify.isEmpty() || searchResultCount < totalSetlistSongsCount / 2) {
+    long searchResultCount = spotifySearchResults.stream()
+      .filter(TrackSearchResult::hasResult)
+      .count();
+    if (spotifySearchResults.isEmpty() || searchResultCount < totalSetlistSongsCount / 2) {
       throw new NotFoundException("No songs found");
     }
 
-    // Find the missed songs (should be 0 ideally)
-    List<Setlist.SongWithIndex> missedSongs = new ArrayList<>();
-    for (int i = 0; i < setlist.getSongs().size(); i++) {
-      Track searchResultSong = songsFromSpotify.get(i);
-      if (searchResultSong == null) {
-        Setlist.Song setlistSong = setlist.getSongs().get(i);
-        missedSongs.add(new Setlist.SongWithIndex(setlistSong, i + 1));
-      }
-    }
-    songsFromSpotify = songsFromSpotify.stream()
-      .filter(Objects::nonNull)
+    // Now purge all missed songs, so we can add the actual results
+    List<TrackSearchResult> spotifySearchResultsFiltered = spotifySearchResults.stream()
+      .filter(TrackSearchResult::hasResult)
       .collect(Collectors.toList());
 
     // Search for existing playlists that match the name and tracks
     // If there is a match, return that instead one instead of creating an entirely new playlist
-    Optional<Playlist> existingSetlistPlaylist = searchForExistingSetlistPlaylist(setlistName, songsFromSpotify);
+    Optional<Playlist> existingSetlistPlaylist = searchForExistingSetlistPlaylist(setlistName, spotifySearchResultsFiltered);
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
       long timeTaken = System.currentTimeMillis() - start;
-      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), missedSongs, timeTaken);
+      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), spotifySearchResultsFiltered, timeTaken);
       logger.info(String.format("Existing setlist requested: %s - %s", existingPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
       return setlistCreationResponse;
     }
@@ -189,17 +183,18 @@ public class SetlistCreator {
     String description = SetlistUtils.assembleDescription(setlist);
     Playlist targetPlaylist = playlistService.createPlaylist(setlistName, description, true);
     attachArtistImage(setlist, targetPlaylist);
-    playlistService.addTracksToPlaylist(targetPlaylist, songsFromSpotify);
+    List<Track> tracksToAdd = spotifySearchResultsFiltered.stream().map(TrackSearchResult::getSearchResult).collect(Collectors.toList());
+    playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
 
     // Log and return the result
     long timeTaken = System.currentTimeMillis() - start;
-    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), missedSongs, timeTaken);
+    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), spotifySearchResults, timeTaken);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
     addSetlistToCache(setlistName, targetPlaylist.getId());
     return setlistCreationResponse;
   }
 
-  private List<Track> findSongsOnSpotify(Setlist setlist, String options) {
+  private List<TrackSearchResult> findSongsOnSpotify(Setlist setlist, String options) {
     List<String> splitOptions = Arrays.asList(options.split(","));
     boolean includeTapes = splitOptions.contains("tapes");
     boolean includeCoverOriginals = splitOptions.contains("covers");
@@ -209,20 +204,22 @@ public class SetlistCreator {
     // This was originally done using SpotifyOptimizedExecutorService,
     // but ironically enough, it is significantly faster in a simple for-loop,
     // as it's less likely to cause 429 Too Many Requests errors this way.
-    List<Track> tracks = new ArrayList<>();
+    List<TrackSearchResult> trackSearchResults = new ArrayList<>();
     for (Setlist.Song song : setlist.getSongs()) {
-      Track track = null;
-      if (!song.isTape() && !song.isMedleyPart()
-          || song.isTape() && includeTapes
-          || song.isMedleyPart() && includeMedleys) {
-          track = searchTrack(song, includeCoverOriginals, strictSearch);
-        }
-      tracks.add(track);
+      boolean notSkipped = !song.isTape() && !song.isMedleyPart()
+        || song.isTape() && includeTapes
+        || song.isMedleyPart() && includeMedleys;
+      if (notSkipped) {
+        TrackSearchResult trackSearchResult = searchTrack(song, includeCoverOriginals, strictSearch);
+        trackSearchResults.add(trackSearchResult);
+      } else {
+        trackSearchResults.add(TrackSearchResult.skipped(song));
+      }
     }
-    return tracks;
+    return trackSearchResults;
   }
 
-  public Track searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
+  public TrackSearchResult searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
     String queryArtistName = song.isTape() ? song.getOriginalArtistName() : song.getArtistName();
     String songName = song.getSongName();
     String searchQuery = buildSearchQuery(songName, queryArtistName, strictSearch);
@@ -237,58 +234,68 @@ public class SetlistCreator {
     }
 
     if (!searchResults.isEmpty()) {
-      final String finalSongName = songName;
-      List<Track> matchingSongs = searchResults.stream()
-        .filter(track -> SetlistUtils.isStartContained(queryArtistName, SpotifyUtils.getFirstArtistName(track)))
-        .filter(track -> !SetlistUtils.isShallowLive(track.getName()))
-        .filter(track -> SetlistUtils.containsIgnoreCaseNormalized(track.getName(), finalSongName))
-        .sorted(Comparator.comparing(t -> t.getAlbum().getReleaseDate()))
-        .collect(Collectors.toList());
-      if (matchingSongs.size() > 1) {
-        // If multiple songs containing the song name have been found, try to find the exact matching song
-
-        // Where possible, try to find songs from official artist's albums first
-        for (Track track : matchingSongs) {
-          String firstArtistName = SpotifyUtils.getFirstArtistName(track.getAlbum());
-          if (AlbumType.ALBUM.equals(track.getAlbum().getAlbumType()) && SetlistUtils.isStartContained(queryArtistName, firstArtistName) && SetlistUtils.isStartContained(track.getName(), songName)) {
-            return track;
-          }
-        }
-
-        // Exact string match
-        for (Track track : matchingSongs) {
-           if (track.getName().equalsIgnoreCase(songName)) {
-            return track;
-          }
-        }
-
-        // Starts-with match (purified)
-        for (Track track : matchingSongs) {
-          if (SetlistUtils.isStartContained(track.getName(), songName)) {
-            return track;
-          }
-        }
-
-        // Contains match (requires strict search to be off)
-        if (!strictSearch) {
-          for (Track track : matchingSongs) {
-            if (SetlistUtils.containsIgnoreCase(track.getName(), songName)) {
-              return track;
-            }
-          }
-        }
-      } else if (matchingSongs.size() == 1){
-        return matchingSongs.get(0);
+      TrackSearchResult bestSearchResult = findBestSearchResult(song, strictSearch, songName, searchResults, queryArtistName, false);
+      if (bestSearchResult.hasResult()) {
+        return bestSearchResult;
+      } else {
+        return findBestSearchResult(song, strictSearch, songName, searchResults, queryArtistName, true);
       }
     } else if (song.isCover() && includeCoverOriginals) {
       String fallbackCoverSearchQuery = buildSearchQuery(songName, song.getOriginalArtistName(), strictSearch);
       Track[] fallbackCoverSearchResults = SpotifyCall.execute(spotifyApi.searchTracks(fallbackCoverSearchQuery).limit(4)).getItems();
       if (fallbackCoverSearchResults.length > 0) {
         Arrays.sort(fallbackCoverSearchResults, Comparator.comparingInt(Track::getPopularity));
-        return fallbackCoverSearchResults[fallbackCoverSearchResults.length - 1];
+        Track coverOriginal = fallbackCoverSearchResults[fallbackCoverSearchResults.length - 1];
+        return TrackSearchResult.coverOriginal(song, coverOriginal);
       }
     }
-    return null;
+    return TrackSearchResult.notFound(song);
+  }
+
+  private TrackSearchResult findBestSearchResult(Setlist.Song song, boolean strictSearch, String songName, List<Track> searchResults, String queryArtistName, boolean allowLive) {
+    List<Track> matchingSongs = searchResults.stream()
+      .filter(track -> SetlistUtils.isStartContained(queryArtistName, SpotifyUtils.getFirstArtistName(track)))
+      .filter(track -> allowLive || !SetlistUtils.isShallowLive(track.getName()))
+      .filter(track -> SetlistUtils.containsIgnoreCaseNormalized(track.getName(), songName))
+      .sorted(Comparator.comparing(t -> t.getAlbum().getReleaseDate()))
+      .collect(Collectors.toList());
+
+    // Where possible, try to find songs from official artist's albums first
+    for (Track track : matchingSongs) {
+      String firstArtistName = SpotifyUtils.getFirstArtistName(track.getAlbum());
+      if (AlbumType.ALBUM.equals(track.getAlbum().getAlbumType()) && queryArtistName.equalsIgnoreCase(firstArtistName) && songName.equalsIgnoreCase(track.getName())) {
+        return TrackSearchResult.exactMatch(song, track);
+      }
+      if (AlbumType.ALBUM.equals(track.getAlbum().getAlbumType()) && SetlistUtils.isStartContained(queryArtistName, firstArtistName) && SetlistUtils.isStartContained(track.getName(), songName)) {
+        return TrackSearchResult.closeMatch(song, track);
+      }
+    }
+
+    // Exact string match
+    for (Track track : matchingSongs) {
+       if (track.getName().equalsIgnoreCase(songName)) {
+         return TrackSearchResult.exactMatch(song, track);
+      }
+    }
+
+    // Starts-with match (purified)
+    for (Track track : matchingSongs) {
+      if (SetlistUtils.isStartContained(track.getName(), songName)) {
+        return TrackSearchResult.closeMatch(song, track);
+      }
+    }
+
+    // Contains match (requires strict search to be off)
+    if (!strictSearch) {
+      for (Track track : matchingSongs) {
+        if (SetlistUtils.containsIgnoreCase(track.getName(), songName)) {
+          return TrackSearchResult.closeMatch(song, track);
+        }
+      }
+    }
+
+    // Otherwise, no song found :(
+    return TrackSearchResult.notFound(song);
   }
 
   private String buildSearchQuery(String songName, String artistName, boolean strictSearch) {
@@ -301,7 +308,7 @@ public class SetlistCreator {
     return artistName + " " + songName;
   }
 
-  private Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<Track> setlistTracks) {
+  private Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<TrackSearchResult> setlistTracks) {
     List<String> playlistIdsForSetlistName = createdSetlists.get(setlistName);
     if (playlistIdsForSetlistName == null || playlistIdsForSetlistName.isEmpty()) {
       // This is the first time the playlist has been fetched
@@ -313,6 +320,7 @@ public class SetlistCreator {
         List<PlaylistTrack> playlistTracks = Arrays.asList(playlist.getTracks().getItems());
         if (setlistTracks.size() == playlistTracks.size()) {
           List<String> currentSetlistTrackIds = setlistTracks.stream()
+            .map(TrackSearchResult::getSearchResult)
             .map(Track::getId)
             .collect(Collectors.toList());
           List<String> existingPlaylistTrackIds = playlistTracks.stream()
@@ -344,6 +352,7 @@ public class SetlistCreator {
       }
     } catch (Exception e) {
       attachArtistImage(setlist, targetPlaylist, remainingAttempts - 1);
+      logger.debug("Retrying attaching artist image for " + setlist.getArtistName() + " (remaining attempts: " + (remainingAttempts - 1) + ")");
     }
     if (remainingAttempts <= 0) {
       logger.warning("Failed to attach artist image -- " + setlist);

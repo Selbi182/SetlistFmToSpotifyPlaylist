@@ -21,6 +21,7 @@ import spotify.services.PlaylistService;
 import spotify.services.UserService;
 import spotify.setlist.creator.SetlistCreator;
 import spotify.setlist.data.Setlist;
+import spotify.setlist.data.TrackSearchResult;
 import spotify.setlist.util.SetlistUtils;
 import spotify.spring.SpringPortConfig;
 import spotify.util.SpotifyLogger;
@@ -68,8 +69,9 @@ public class SearchTest {
   ///////////////////////////////
 
   private Track searchTrack(String artist, String title) {
-    Setlist.Song song = new Setlist.Song(title, artist, artist, true, true, true);
-    return setlistCreator.searchTrack(song, true, true);
+    Setlist.Song song = new Setlist.Song(1, title, artist, artist, true, true, true);
+    TrackSearchResult trackSearchResult = setlistCreator.searchTrack(song, true, true);
+    return trackSearchResult.getSearchResult();
   }
 
   private void testPositive(String artist, String title) {

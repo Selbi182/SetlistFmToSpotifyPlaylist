@@ -1,13 +1,29 @@
 /**
- * @typedef {Object} SetlistCreationResponse
- * @property {string} songName
- * @property {string} playlistId
- * @property {string} playlistUrl
- * @property {number} timeTaken
- * @property {number} missedSongs
+ * @typedef {Object} SetlistCreationResponse - Wrapper for a singular setlist creation response.
+ * @property {string} artistName - Name of the artist.
+ * @property {string} eventDate - Date of the event.
+ * @property {string} city - City and/or venue where the event took place.
+ * @property {string} playlistId - ID of the result playlist.
+ * @property {string} playlistUrl - URL of the playlist.
+ * @property {number} timeTaken - Time taken for the operation.
+ * @property {TrackSearchResult[]} searchResults - Array of the search results.
+ *
+ * @typedef {Object} TrackSearchResult - Wrapper for a single track search result.
+ * @property {string} resultType - Type of result (e.g. "MATCH", "NOT_FOUND", etc.).
+ * @property {SetlistSong} song - The song from the setlist.fm setlist.
+ * @property {SpotifySong} searchResult - The track from the Spotify search result, may be null.
+ *
+ * @typedef {Object} SetlistSong - Song info from setlist.fm.
+ * @property {number} index - Index of the song.
+ * @property {string} songName - Name of the song.
+ * @property {string} artistName - Name of the artist.
+ *
+ * @typedef {Object} SpotifySong - Song info from Spotify.
+ * @property {number} discNumber - Disc number.
+ * @property {number} durationMs - Duration of the song in milliseconds.
+ * @property {string} href - URL of the track.
  */
-
-(function() {
+(function () {
   setCopyrightYear();
   createKofiButton();
   document.getElementById("counter").classList.add("show");
@@ -67,22 +83,34 @@
 
             let playlistId = setlistCreationResponse.playlistId;
             let playlistUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator`;
-            playlistEmbed.innerHTML =
-                `<div id="summary"><a href="${setlistCreationResponse.playlistUrl}" target="_blank">${setlistCreationResponse.playlistUrl}</a> // Generated in ${(setlistCreationResponse.timeTaken / 1000).toFixed(1)}s</div>`
-              + `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+            playlistEmbed.innerHTML = `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>` + `<div id="summary"><a href="${setlistCreationResponse.playlistUrl}" target="_blank">${setlistCreationResponse.playlistUrl}</a> // Generated in ${(setlistCreationResponse.timeTaken / 1000).toFixed(1)}s</div>`
 
             refreshConvertedSetlistsCounter();
 
-            let missedSongs = setlistCreationResponse.missedSongs;
-            if (missedSongs.length > 0) {
-              let missedSongsContainer = document.getElementById("missed-songs");
-              missedSongsContainer.classList.add("show");
-              missedSongsContainer.setAttribute("data-header-text", `Missed Songs (${missedSongs.length}):`);
-              for (let missedSong of missedSongs) {
-                let missedSongElem = document.createElement("tr");
-                missedSongElem.innerHTML = `<td class="missed-song-index">${missedSong.index}.</td><td class="missed-song-name">${missedSong.songName}</td>`;
-                missedSongsContainer.append(missedSongElem);
+            let searchResults = setlistCreationResponse.searchResults;
+            if (searchResults.length > 0) {
+              let searchResultsContainer = document.getElementById("search-results");
+              searchResultsContainer.classList.add("show");
+              searchResultsContainer.setAttribute("data-header-text", `Search Results:`);
+              for (let searchResult of searchResults) {
+                let searchResultRow = document.createElement("tr");
+                if (searchResult.resultType.includes("MATCH")) {
+                  searchResultRow.classList.add("collapse");
+                }
+                let searchResultType = searchResult.resultType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+
+                searchResultRow.innerHTML = `<td class="search-result-index">${searchResult.song.index}.</td><td class="search-result-name">${searchResult.song.songName}</td><td class="search-result-type">${searchResultType}</td>`;
+                searchResultsContainer.append(searchResultRow);
               }
+
+              let fullSummaryButton = document.createElement("div");
+              fullSummaryButton.innerHTML = "Show detailed summary...";
+              fullSummaryButton.id = "full-summary-button";
+              fullSummaryButton.onclick = () => {
+                searchResultsContainer.childNodes.forEach(child => child.classList.remove("collapse"));
+                fullSummaryButton.remove();
+              };
+              searchResultsContainer.append(fullSummaryButton);
             }
           }, 1000)
 

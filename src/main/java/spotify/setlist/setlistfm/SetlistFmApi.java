@@ -49,9 +49,11 @@ public class SetlistFmApi {
         throw new IllegalStateException("Setlist mustn't be empty");
       }
 
+      int index = 0;
       for (JsonElement sets : asJsonArray) {
         JsonArray songs = sets.getAsJsonObject().get("song").getAsJsonArray();
         for (JsonElement song : songs) {
+          index++;
           JsonObject songInfo = song.getAsJsonObject();
           String songName = songInfo.get("name").getAsString();
           boolean isTape = songInfo.has("tape") && songInfo.get("tape").getAsBoolean();
@@ -66,7 +68,7 @@ public class SetlistFmApi {
               String originalArtist = isCover
                 ? songInfo.get("cover").getAsJsonObject().get("name").getAsString()
                 : artistName;
-              Setlist.Song setlistSong = new Setlist.Song(medleyPartOrSingleSong, artistName, originalArtist, isTape, isCover, isMedleyPart);
+              Setlist.Song setlistSong = new Setlist.Song(index, medleyPartOrSingleSong, artistName, originalArtist, isTape, isCover, isMedleyPart);
               setlistSongs.add(setlistSong);
             }
           }
