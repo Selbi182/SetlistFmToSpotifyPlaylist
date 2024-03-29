@@ -8,12 +8,14 @@ public class SetlistCreationResponse {
   private final String playlistId;
   private final List<TrackSearchResult> searchResults;
   private final long timeTaken;
+  private final boolean reused;
 
-  public SetlistCreationResponse(Setlist setlist, String playlistId, List<TrackSearchResult> searchResults, long timeTaken) {
+  public SetlistCreationResponse(Setlist setlist, String playlistId, List<TrackSearchResult> searchResults, long timeTaken, boolean reused) {
     this.setlist = setlist;
     this.playlistId = playlistId;
     this.searchResults = searchResults;
     this.timeTaken = timeTaken;
+    this.reused = reused;
   }
 
   public Setlist getSetlist() {
@@ -34,5 +36,9 @@ public class SetlistCreationResponse {
 
   public long getTimeTaken() {
     return timeTaken;
+  }
+
+  public boolean isReused() {
+    return reused;
   }
 }

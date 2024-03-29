@@ -104,6 +104,8 @@ public class SetlistCreator {
 
   @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.DAYS)
   public void refreshCreatedSetlistsCounterAndRemoveDeadPlaylists() {
+    // TODO more proper cleanup of already existing duplicated playlists (from debugging and stuff)
+
     List<PlaylistSimplified> allUserPlaylists = playlistService.getCurrentUsersPlaylists();
 
     createdSetlists.clear();
@@ -174,7 +176,7 @@ public class SetlistCreator {
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
       long timeTaken = System.currentTimeMillis() - start;
-      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), spotifySearchResultsFiltered, timeTaken);
+      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), spotifySearchResultsFiltered, timeTaken, true);
       logger.info(String.format("Existing setlist requested: %s - %s", existingPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
       return setlistCreationResponse;
     }
@@ -188,7 +190,7 @@ public class SetlistCreator {
 
     // Log and return the result
     long timeTaken = System.currentTimeMillis() - start;
-    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), spotifySearchResults, timeTaken);
+    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), spotifySearchResults, timeTaken, false);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
     addSetlistToCache(setlistName, targetPlaylist.getId());
     return setlistCreationResponse;

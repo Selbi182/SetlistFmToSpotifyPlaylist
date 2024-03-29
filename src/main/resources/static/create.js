@@ -43,7 +43,8 @@
     
     If the problem persists or if you believe it's a bug, PLEASE report the issue on GitHub or the setlist.fm forum along with a link to the problematic setlist, and I'll gladly take a look at it.
     
-    Thank you!`.split('\n').map(line => line.trim()).join('\n');
+    Thank you!`
+      .split('\n').map(line => line.trim()).join('\n');
 
   const validSetlistUrlRegex = /^https?:\/\/(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html$/i;
 
@@ -77,42 +78,73 @@
           submitButton.innerHTML = "Playlist Created! Loading Embed...";
 
           setTimeout(() => {
+            // Hide progress elements
             inputField.classList.add("hide");
             submitButton.classList.add("hide");
             spinner.classList.remove("show");
 
+            // Create the Spotify playlist embed
             let playlistId = setlistCreationResponse.playlistId;
             let playlistUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator`;
-            playlistEmbed.innerHTML = `<iframe src="${playlistUrl}" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>` + `<div id="summary"><a href="${setlistCreationResponse.playlistUrl}" target="_blank">${setlistCreationResponse.playlistUrl}</a> // Generated in ${(setlistCreationResponse.timeTaken / 1000).toFixed(1)}s</div>`
+            playlistEmbed.innerHTML = `<iframe src="${playlistUrl}" style="border-radius:12px" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`
+            // TODO improve this using https://developer.spotify.com/documentation/embeds/tutorials/using-the-iframe-api
 
-            refreshConvertedSetlistsCounter();
+            //////////
+            // Fill the results container
 
+            // Direct link
+            let directLink = document.getElementById("direct-link");
+            directLink.href = setlistCreationResponse.playlistUrl;
+            directLink.innerHTML = setlistCreationResponse.playlistUrl;
+
+            // Search results
             let searchResults = setlistCreationResponse.searchResults;
             if (searchResults.length > 0) {
               let searchResultsContainer = document.getElementById("search-results");
-              searchResultsContainer.classList.add("show");
-              searchResultsContainer.setAttribute("data-header-text", `Search Results:`);
+              searchResultsContainer.title = "Click to toggle detailed search results...";
+              searchResultsContainer.onclick = () => {
+                searchResultsContainer.classList.toggle("no-collapse");
+              };
+
+              // Summary Header
+              let foundCount = searchResults.filter(sr => !!sr.searchResult).length;
+              let totalCount = searchResults.length;
+              let summaryHeader = document.createElement("th");
+              let timeTaken = `~${(setlistCreationResponse.timeTaken / 1000).toFixed(1)}s`
+              summaryHeader.innerHTML = `Playlist created with ${foundCount} of ${totalCount} songs in in ${timeTaken}`;
+              summaryHeader.colSpan = 3;
+              searchResultsContainer.append(summaryHeader);
+
+              // The actual rows
               for (let searchResult of searchResults) {
                 let searchResultRow = document.createElement("tr");
                 if (searchResult.resultType.includes("MATCH")) {
-                  searchResultRow.classList.add("collapse");
+                  searchResultRow.classList.add("match");
                 }
-                let searchResultType = searchResult.resultType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 
-                searchResultRow.innerHTML = `<td class="search-result-index">${searchResult.song.index}.</td><td class="search-result-name">${searchResult.song.songName}</td><td class="search-result-type">${searchResultType}</td>`;
+                let searchResultIndex = document.createElement("td");
+                searchResultIndex.classList.add("search-result-index");
+                searchResultIndex.innerHTML = searchResult.song.index;
+
+                let searchResultName = document.createElement("td");
+                searchResultName.classList.add("search-result-name");
+                searchResultName.innerHTML = searchResult.searchResult?.name || searchResult.song.songName;
+
+                let searchResultType = document.createElement("td");
+                searchResultType.classList.add("search-result-type");
+                searchResultType.innerHTML = searchResult.resultType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+
+                searchResultRow.append(searchResultIndex, searchResultName, searchResultType);
                 searchResultsContainer.append(searchResultRow);
               }
-
-              let fullSummaryButton = document.createElement("div");
-              fullSummaryButton.innerHTML = "Show detailed summary...";
-              fullSummaryButton.id = "full-summary-button";
-              fullSummaryButton.onclick = () => {
-                searchResultsContainer.childNodes.forEach(child => child.classList.remove("collapse"));
-                fullSummaryButton.remove();
-              };
-              searchResultsContainer.append(fullSummaryButton);
             }
-          }, 1000)
+
+            // Finally, show results
+            let resultsContainer = document.getElementById("results");
+            resultsContainer.classList.add("show");
+
+            refreshConvertedSetlistsCounter();
+          }, 250)
 
         })
         .catch(ex => {

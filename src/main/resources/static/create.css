@@ -45,6 +45,8 @@ body {
     z-index: -1;
 }
 
+/********/
+
 #content {
     display: flex;
     flex-direction: column;
@@ -94,6 +96,8 @@ header {
     font-weight: initial;
     font-size: 150%;
 }
+
+/********/
 
 #main {
     display: flex;
@@ -205,40 +209,38 @@ header {
     width: 100%;
 }
 
-#summary {
-    font-style: italic;
-    margin-top: 1em;
-    opacity: 0.65;
-    transition: opacity var(--transition);
+/********/
+
+#results {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em;
+    padding: 1em;
+    border-radius: 1em;
+    background: #0002;
+    font-size: 125%;
 }
 
-#summary:hover {
-    opacity: 1;
+#results.show {
+    display: flex;
+}
+
+#direct-link {
+    font-size: 125%;
+    font-weight: bold;
 }
 
 #search-results {
-    display: none;
-    flex-direction: column;
-    align-items: start;
-    font-size: 125%;
+    width: fit-content;
     border-collapse: collapse;
-    background: #0002;
-    padding: 1em;
-    border-radius: 1em;
+    opacity: 0.5;
+    transition: opacity var(--transition);
+    cursor: pointer;
 }
 
-#search-results::before {
-    content: attr(data-header-text);
-    font-size: 125%;
-    font-weight: bold;
-    text-align: left;
-    width: 100%;
-    display: block;
-    margin-bottom: 0.5em;
-}
-
-#search-results.show {
-    display: initial;
+#search-results:hover, #search-results.no-collapse {
+    opacity: 1;
 }
 
 #search-results tr {
@@ -249,8 +251,12 @@ header {
     background-color: #fff2;
 }
 
-#search-results tr.collapse {
+#search-results:not(.no-collapse) tr.match {
     display: none;
+}
+
+#search-results.no-collapse tr:not(.match) {
+    opacity: 0.5;
 }
 
 #search-results td {
@@ -260,6 +266,10 @@ header {
 #search-results .search-result-index {
     font-weight: bold;
     text-align: right;
+}
+
+#search-results .search-result-index::after {
+    content: ".";
 }
 
 #search-results .search-result-name {
@@ -272,17 +282,7 @@ header {
     text-align: right;
 }
 
-#full-summary-button {
-    cursor: pointer;
-    text-align: left;
-    margin-top: 0.5em;
-    opacity: 0.5;
-    transition: opacity var(--transition);
-}
-
-#full-summary-button:hover {
-    opacity: 1;
-}
+/********/
 
 footer {
     font-size: 100%;
@@ -297,6 +297,8 @@ footer > div {
 }
 
 
+/********/
+
 @keyframes rotating {
     from {
         transform: rotate(0deg);
@@ -305,6 +307,8 @@ footer > div {
         transform: rotate(360deg);
     }
 }
+
+/********/
 
 @media only screen and (max-aspect-ratio: 3/2), (min-aspect-ratio: 5/2) {
     body {
