@@ -111,7 +111,7 @@
               let totalCount = searchResults.length;
               let summaryHeader = document.createElement("th");
               let timeTaken = `~${(setlistCreationResponse.timeTaken / 1000).toFixed(1)}s`
-              summaryHeader.innerHTML = `Playlist created with ${foundCount} of ${totalCount} songs in in ${timeTaken}`;
+              summaryHeader.innerHTML = `Playlist created with ${foundCount} of ${totalCount} songs in ${timeTaken}`;
               summaryHeader.colSpan = 3;
               searchResultsContainer.append(summaryHeader);
 

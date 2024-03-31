@@ -1,34 +1,23 @@
 package spotify.setlist.creator;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
 import org.springframework.core.env.Environment;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
-import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
-import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
-import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
 import spotify.services.PlaylistService;
@@ -39,47 +28,34 @@ import spotify.setlist.setlistfm.SetlistFmApi;
 import spotify.setlist.util.SetlistUtils;
 import spotify.spring.SpringPortConfig;
 import spotify.util.SpotifyLogger;
-import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.SpotifyUtils;
 
-@EnableScheduling
 @Component
 public class SetlistCreator {
   private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_bot.setlist_fm_api_token";
   private static final String SETLIST_FM_DEBUG_ENV = "setlist_bot.debug_mode";
 
+  private final CreationCache creationCache;
   private final SpotifyApi spotifyApi;
   private final PlaylistService playlistService;
-  private final SpotifyOptimizedExecutorService executorService;
   private final SpotifyLogger logger;
   private final Environment environment;
   private final int port;
 
   private String setlistFmApiToken;
 
-  /**
-   * Maps setlist names to lists of playlist IDs
-   * (in case one setlist name has different setlists, such as different setlists each night despite being on the same tour)
-   */
-  private final Map<String, List<String>> createdSetlists;
-
-  private final DecimalFormat decimalFormat;
-
-  SetlistCreator(SpotifyApi spotifyApi,
+  SetlistCreator(CreationCache creationCache,
+      SpotifyApi spotifyApi,
       PlaylistService playlistService,
-      SpotifyOptimizedExecutorService spotifyOptimizedExecutorService,
       SpotifyLogger spotifyLogger,
       Environment environment,
       SpringPortConfig springPortConfig) {
+    this.creationCache = creationCache;
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
-    this.executorService = spotifyOptimizedExecutorService;
     this.logger = spotifyLogger;
     this.environment = environment;
     this.port = springPortConfig.getPort();
-
-    this.createdSetlists = new ConcurrentHashMap<>();
-    this.decimalFormat = new DecimalFormat("#,###");
   }
 
   @PostConstruct
@@ -97,49 +73,11 @@ public class SetlistCreator {
       logger.warning("Debug mode enabled, playlist counter calculation has been skipped!");
     } else {
       logger.info("Calculating and cleaning up existing playlists... (this might take a while)");
-      refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
+      creationCache.refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
     }
     logger.info("Booted up! http://localhost:" + port);
   }
 
-  @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.DAYS)
-  public void refreshCreatedSetlistsCounterAndRemoveDeadPlaylists() {
-    // TODO more proper cleanup of already existing duplicated playlists (from debugging and stuff)
-
-    List<PlaylistSimplified> allUserPlaylists = playlistService.getCurrentUsersPlaylists();
-
-    createdSetlists.clear();
-    for (PlaylistSimplified ps : allUserPlaylists) {
-      String name = ps.getName();
-      String id = ps.getId();
-      addSetlistToCache(name, id);
-    }
-
-    List<Callable<String>> toRemove = allUserPlaylists.stream()
-      .filter(pl -> (pl.getTracks().getTotal() == 0))
-      .map(pl -> (Callable<String>) () -> SpotifyCall.execute(spotifyApi.unfollowPlaylist(pl.getId())))
-      .collect(Collectors.toList());
-    if (!toRemove.isEmpty()) {
-      executorService.executeAndWait(toRemove);
-    }
-  }
-
-  private void addSetlistToCache(String name, String id) {
-    if (!createdSetlists.containsKey(name)) {
-      createdSetlists.put(name, new CopyOnWriteArrayList<>());
-    }
-    createdSetlists.get(name).add(id);
-  }
-
-  public int getSetlistCounter() {
-    return createdSetlists.values().stream()
-      .mapToInt(List::size)
-      .sum();
-  }
-
-  public String getSetlistCounterFormatted() {
-    return decimalFormat.format(getSetlistCounter());
-  }
   /**
    * Create a setlist playlist from the given setlist.fm ID
    *
@@ -172,7 +110,7 @@ public class SetlistCreator {
 
     // Search for existing playlists that match the name and tracks
     // If there is a match, return that instead one instead of creating an entirely new playlist
-    Optional<Playlist> existingSetlistPlaylist = searchForExistingSetlistPlaylist(setlistName, spotifySearchResultsFiltered);
+    Optional<Playlist> existingSetlistPlaylist = creationCache.searchForExistingSetlistPlaylist(setlistName, spotifySearchResultsFiltered);
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
       long timeTaken = System.currentTimeMillis() - start;
@@ -184,7 +122,7 @@ public class SetlistCreator {
     // Create the playlist on Spotify with appropriate name, description, and image
     String description = SetlistUtils.assembleDescription(setlist);
     Playlist targetPlaylist = playlistService.createPlaylist(setlistName, description, true);
-    attachArtistImage(setlist, targetPlaylist);
+    attachArtistImage(setlist.getArtistName(), targetPlaylist);
     List<Track> tracksToAdd = spotifySearchResultsFiltered.stream().map(TrackSearchResult::getSearchResult).collect(Collectors.toList());
     playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
 
@@ -192,7 +130,7 @@ public class SetlistCreator {
     long timeTaken = System.currentTimeMillis() - start;
     SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), spotifySearchResults, timeTaken, false);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
-    addSetlistToCache(setlistName, targetPlaylist.getId());
+    creationCache.addSetlistToCache(setlistName, targetPlaylist.getId());
     return setlistCreationResponse;
   }
 
@@ -221,7 +159,8 @@ public class SetlistCreator {
     return trackSearchResults;
   }
 
-  public TrackSearchResult searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
+  // visible for testing
+  TrackSearchResult searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
     String queryArtistName = song.isTape() ? song.getOriginalArtistName() : song.getArtistName();
     String songName = song.getSongName();
     String searchQuery = buildSearchQuery(songName, queryArtistName, strictSearch);
@@ -310,42 +249,26 @@ public class SetlistCreator {
     return artistName + " " + songName;
   }
 
-  private Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<TrackSearchResult> setlistTracks) {
-    List<String> playlistIdsForSetlistName = createdSetlists.get(setlistName);
-    if (playlistIdsForSetlistName == null || playlistIdsForSetlistName.isEmpty()) {
-      // This is the first time the playlist has been fetched
-      return Optional.empty();
-    } else {
-      // Setlist name has been found again, check if the playlist already exists
-      for (String playlistId : playlistIdsForSetlistName) {
-        Playlist playlist = playlistService.getPlaylist(playlistId);
-        List<PlaylistTrack> playlistTracks = Arrays.asList(playlist.getTracks().getItems());
-        if (setlistTracks.size() == playlistTracks.size()) {
-          List<String> currentSetlistTrackIds = setlistTracks.stream()
-            .map(TrackSearchResult::getSearchResult)
-            .map(Track::getId)
-            .collect(Collectors.toList());
-          List<String> existingPlaylistTrackIds = playlistTracks.stream()
-            .map(PlaylistTrack::getTrack)
-            .map(IPlaylistItem::getId)
-            .collect(Collectors.toList());
-          if (currentSetlistTrackIds.equals(existingPlaylistTrackIds)) {
-            return Optional.of(playlist);
-          }
-        }
-      }
-    }
-    return Optional.empty();
+  /**
+   * Attaches the first image of the given artist of the setlist as the playlist image.
+   * Will fail if the artist has no image.
+   * Note: Due to a weird quirk with Spotify's API, it will sometimes fail with Not Found
+   *       despite the artist clearly having images. What's weirder is that upon multiple
+   *       retries it will magically start working again. Therefore, this method will
+   *       automatically retry the attachment process up to 10 times, which so far has
+   *       always worked.
+   *
+   * @param artistName th artist name to search for
+   * @param targetPlaylist the playlist to attach the image to
+   */
+  private void attachArtistImage(String artistName, Playlist targetPlaylist) {
+    attachArtistImage(artistName, targetPlaylist, 10);
   }
 
-  private void attachArtistImage(Setlist setlist, Playlist targetPlaylist) {
-    attachArtistImage(setlist, targetPlaylist, 10);
-  }
-
-  private void attachArtistImage(Setlist setlist, Playlist targetPlaylist, int remainingAttempts) {
+  private void attachArtistImage(String artistName, Playlist targetPlaylist, int remainingAttempts) {
     try {
       if (remainingAttempts > 0) {
-        Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(setlist.getArtistName())).getItems();
+        Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(artistName)).getItems();
         if (artists.length > 0) {
           Artist artist = artists[0];
           String image = SpotifyUtils.findLargestImage(artist.getImages());
@@ -353,11 +276,11 @@ public class SetlistCreator {
         }
       }
     } catch (Exception e) {
-      attachArtistImage(setlist, targetPlaylist, remainingAttempts - 1);
-      logger.debug("Retrying attaching artist image for " + setlist.getArtistName() + " (remaining attempts: " + (remainingAttempts - 1) + ")");
+      attachArtistImage(artistName, targetPlaylist, remainingAttempts - 1);
+      logger.debug("Retrying attaching artist image for " + artistName + " (remaining attempts: " + (remainingAttempts - 1) + ")");
     }
     if (remainingAttempts <= 0) {
-      logger.warning("Failed to attach artist image -- " + setlist);
+      logger.warning("Failed to attach artist image -- " + artistName);
     }
   }
 }

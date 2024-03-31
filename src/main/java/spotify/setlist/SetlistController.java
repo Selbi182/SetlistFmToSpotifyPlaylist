@@ -15,28 +15,32 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
+import spotify.setlist.creator.CreationCache;
 import spotify.setlist.creator.SetlistCreator;
 import spotify.setlist.data.SetlistCreationResponse;
 import spotify.setlist.util.SetlistUtils;
 
 @RestController
 public class SetlistController {
-  private final Semaphore semaphore;
+  private static final int MAX_CONCURRENT_REQUESTS = 5;
 
   private final SetlistCreator setlistCreator;
+  private final CreationCache creationCache;
+
+  private final Semaphore semaphore;
   private final long bootTime;
 
-  SetlistController(SetlistCreator setlistCreator) {
-    final int MAX_CONCURRENT_REQUESTS = 5;
-    this.semaphore = new Semaphore(MAX_CONCURRENT_REQUESTS);
+  SetlistController(SetlistCreator setlistCreator, CreationCache creationCache) {
     this.setlistCreator = setlistCreator;
+    this.creationCache = creationCache;
+    this.semaphore = new Semaphore(MAX_CONCURRENT_REQUESTS);
     this.bootTime = System.currentTimeMillis();
   }
 
   @RequestMapping("/")
   public ModelAndView converter(Model model) {
     model.addAttribute("bootTime", bootTime);
-    model.addAttribute("playlistCount", setlistCreator.getSetlistCounterFormatted());
+    model.addAttribute("playlistCount", creationCache.getSetlistCounterFormatted());
     return new ModelAndView("converter.html");
   }
 
@@ -61,7 +65,7 @@ public class SetlistController {
   @CrossOrigin
   @RequestMapping("/counter")
   public ResponseEntity<Integer> createdSetlistsCounter() {
-    return ResponseEntity.ok(setlistCreator.getSetlistCounter());
+    return ResponseEntity.ok(creationCache.getSetlistCounter());
   }
 
   @ExceptionHandler(NotFoundException.class)
