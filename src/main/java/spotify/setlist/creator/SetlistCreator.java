@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import se.michaelthelin.spotify.SpotifyApi;
-import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
@@ -86,7 +85,7 @@ public class SetlistCreator {
    * @return a SetlistCreationResponse with the result
    * @throws NotFoundException if either the setlist or any of its songs couldn't be found
    */
-  public SetlistCreationResponse createSetlist(String setlistFmId, String options) throws NotFoundException {
+  public SetlistCreationResponse convertSetlistToPlaylist(String setlistFmId, String options) throws NotFoundException {
     long start = System.currentTimeMillis();
 
     // Find the setlist.fm setlist
@@ -204,11 +203,20 @@ public class SetlistCreator {
     // Where possible, try to find songs from official artist's albums first
     for (Track track : matchingSongs) {
       String firstArtistName = SpotifyUtils.getFirstArtistName(track.getAlbum());
-      if (AlbumType.ALBUM.equals(track.getAlbum().getAlbumType()) && queryArtistName.equalsIgnoreCase(firstArtistName) && songName.equalsIgnoreCase(track.getName())) {
-        return TrackSearchResult.exactMatch(song, track);
+      if (SetlistUtils.isInAlbum(track)) {
+        if (queryArtistName.equalsIgnoreCase(firstArtistName) && songName.equalsIgnoreCase(track.getName())) {
+          return TrackSearchResult.exactMatch(song, track);
+        }
       }
-      if (AlbumType.ALBUM.equals(track.getAlbum().getAlbumType()) && SetlistUtils.isStartContained(queryArtistName, firstArtistName) && SetlistUtils.isStartContained(track.getName(), songName)) {
-        return TrackSearchResult.closeMatch(song, track);
+    }
+
+    // If that failed, retry it but this time with a lesser strict match
+    for (Track track : matchingSongs) {
+      String firstArtistName = SpotifyUtils.getFirstArtistName(track.getAlbum());
+      if (SetlistUtils.isInAlbum(track)) {
+        if (SetlistUtils.isStartContained(queryArtistName, firstArtistName) && SetlistUtils.isStartContained(track.getName(), songName)) {
+          return TrackSearchResult.closeMatch(song, track);
+        }
       }
     }
 

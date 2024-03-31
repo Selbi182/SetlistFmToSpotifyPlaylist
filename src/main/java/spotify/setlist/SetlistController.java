@@ -51,7 +51,7 @@ public class SetlistController {
     try {
       semaphore.acquire();
       String setlistFmId = SetlistUtils.getIdFromSetlistFmUrl(url);
-      SetlistCreationResponse setlistCreationResponse = setlistCreator.createSetlist(setlistFmId, options);
+      SetlistCreationResponse setlistCreationResponse = setlistCreator.convertSetlistToPlaylist(setlistFmId, options);
       return ResponseEntity.ok(setlistCreationResponse);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

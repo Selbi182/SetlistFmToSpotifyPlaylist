@@ -6,6 +6,8 @@ import java.util.regex.Pattern;
 
 import org.springframework.util.StringUtils;
 
+import se.michaelthelin.spotify.enums.AlbumType;
+import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.setlist.data.Setlist;
 
 public class SetlistUtils {
@@ -142,5 +144,15 @@ public class SetlistUtils {
    */
   public static boolean isShallowLive(String songName) {
     return LIVE_REGEX.matcher(songName).find();
+  }
+
+  /**
+   * Returns true if the given track is contained is on an album.
+   *
+   * @param track the track
+   * @return true if it's on an album
+   */
+  public static boolean isInAlbum(Track track) {
+    return AlbumType.ALBUM.equals(track.getAlbum().getAlbumType());
   }
 }
