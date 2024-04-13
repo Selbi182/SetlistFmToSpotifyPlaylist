@@ -181,10 +181,11 @@ header {
 #format-info {
     opacity: 0.65;
     font-size: 100%;
+    display: none;
 }
 
-#format-info.hide {
-    display: none;
+#format-info.show {
+    display: initial;
 }
 
 #format-info-example {
@@ -229,6 +230,11 @@ header {
 #direct-link {
     font-size: 125%;
     font-weight: bold;
+}
+
+#direct-link::before {
+    content: "\01F517\FE0E\00A0";
+    opacity: 0.5;
 }
 
 #search-results {

@@ -166,7 +166,7 @@ public class SetlistCreator {
 
     List<Track> searchResults = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems());
 
-    // One-time retry for songs starting with "The", because sometimes that word is missing on the Spotify version of the track
+    // One-time retry for songs starting with "The ", because sometimes that word is missing on the Spotify version of the track
     if (searchResults.isEmpty() && StringUtils.startsWithIgnoreCase(songName, "The ")) {
       songName = songName.replaceFirst("The ", "");
       searchQuery = buildSearchQuery(songName, queryArtistName, strictSearch);
@@ -259,14 +259,14 @@ public class SetlistCreator {
 
   /**
    * Attaches the first image of the given artist of the setlist as the playlist image.
-   * Will fail if the artist has no image.
+   * Will fail if the artist has no images.
    * Note: Due to a weird quirk with Spotify's API, it will sometimes fail with Not Found
    *       despite the artist clearly having images. What's weirder is that upon multiple
    *       retries it will magically start working again. Therefore, this method will
    *       automatically retry the attachment process up to 10 times, which so far has
    *       always worked.
    *
-   * @param artistName th artist name to search for
+   * @param artistName the artist name to search for
    * @param targetPlaylist the playlist to attach the image to
    */
   private void attachArtistImage(String artistName, Playlist targetPlaylist) {

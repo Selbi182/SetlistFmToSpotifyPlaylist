@@ -1,7 +1,27 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en-us">
 <head>
-  <!-- Google tag (gtag.js) -->
+  <title>setlist.fm to Spotify</title>
+
+  <script th:src="@{'/converter.js?' + ${bootTime}}" type="module"></script>
+  <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+  <script type='text/javascript' src="https://storage.ko-fi.com/cdn/widget/Widget_2.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <link rel="stylesheet" th:href="@{'/converter.css?' + ${bootTime}}"/>
+
+  <link rel="icon" href="favicon.png" type="image/x-icon">
+
+  <meta charset="utf-8">
+  <meta name="title" content="setlist.fm to Spotify" />
+  <meta name="description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://setlistfm.selbi.club/" />
+  <meta property="og:title" content="setlist.fm to Spotify" />
+  <meta property="og:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
+  <meta property="twitter:url" content="https://setlistfm.selbi.club/" />
+  <meta property="twitter:title" content="setlist.fm to Spotify" />
+  <meta property="twitter:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-4VY3DTLHVH"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -9,29 +29,6 @@
     gtag('js', new Date());
     gtag('config', 'G-4VY3DTLHVH');
   </script>
-  <!-- Google tag (gtag.js) -->
-
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <title>setlist.fm to Spotify</title>
-  <script th:src="@{'/create.js?' + ${bootTime}}" type="module"></script>
-  <script type='text/javascript' src="https://storage.ko-fi.com/cdn/widget/Widget_2.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <link rel="stylesheet" th:href="@{'/create.css?' + ${bootTime}}"/>
-  <link rel="icon" href="favicon.png" type="image/x-icon">
-
-  <meta name="title" content="setlist.fm to Spotify" />
-  <meta name="description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://setlistfm.selbi.club/" />
-  <meta property="og:title" content="setlist.fm to Spotify" />
-  <meta property="og:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
-  <meta property="twitter:card" content="summary_large_image" />
-  <meta property="twitter:url" content="https://setlistfm.selbi.club/" />
-  <meta property="twitter:title" content="setlist.fm to Spotify" />
-  <meta property="twitter:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
 </head>
 <body>
   <div id="background"></div>
@@ -39,7 +36,7 @@
     <header>
       <div id="headline">
         <a href="https://www.setlist.fm/"><img src="setlistfm-logo.png" alt="setlist.fm"></a>
-        <span> to </span>
+        <a href="/"> to </a>
         <a href="https://spotify.com"><img src="spotify-logo.png" alt="Spotify"></a>
       </div>
       <div id="external-links">

@@ -5,7 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 import org.jsoup.Jsoup;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -19,8 +18,6 @@ import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
 import spotify.setlist.data.Setlist;
 
 public class SetlistFmApi {
-  private static final Pattern REGEX_INTRO = Pattern.compile("\\bintro\\b", Pattern.CASE_INSENSITIVE);
-  private static final Pattern REGEX_SOLO = Pattern.compile("\\bsolo\\b", Pattern.CASE_INSENSITIVE);
   private static final DateTimeFormatter PARSE_LFM_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.US);
 
   public static Setlist getSetlist(String setlistFmId, String setlistFmApiToken) throws NotFoundException {
@@ -58,19 +55,15 @@ public class SetlistFmApi {
           String songName = songInfo.get("name").getAsString();
           boolean isTape = songInfo.has("tape") && songInfo.get("tape").getAsBoolean();
           boolean isCover = songInfo.has("cover");
-          boolean isRedundantSong = songName.isBlank()
-            || REGEX_INTRO.matcher(songName).find()
-            || REGEX_SOLO.matcher(songName).find();
-          if (!isRedundantSong) {
-            String[] medleyParts = songName.split(" / ");
-            boolean isMedleyPart = medleyParts.length > 1;
-            for (String medleyPartOrSingleSong : medleyParts) {
-              String originalArtist = isCover
-                ? songInfo.get("cover").getAsJsonObject().get("name").getAsString()
-                : artistName;
-              Setlist.Song setlistSong = new Setlist.Song(index, medleyPartOrSingleSong, artistName, originalArtist, isTape, isCover, isMedleyPart);
-              setlistSongs.add(setlistSong);
-            }
+
+          String[] medleyParts = songName.split(" / ");
+          boolean isMedleyPart = medleyParts.length > 1;
+          for (String medleyPartOrSingleSong : medleyParts) {
+            String originalArtist = isCover
+              ? songInfo.get("cover").getAsJsonObject().get("name").getAsString()
+              : artistName;
+            Setlist.Song setlistSong = new Setlist.Song(index, medleyPartOrSingleSong, artistName, originalArtist, isTape, isCover, isMedleyPart);
+            setlistSongs.add(setlistSong);
           }
         }
       }
