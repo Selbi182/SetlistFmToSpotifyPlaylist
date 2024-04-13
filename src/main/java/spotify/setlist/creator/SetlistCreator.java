@@ -113,7 +113,7 @@ public class SetlistCreator {
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
       long timeTaken = System.currentTimeMillis() - start;
-      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), spotifySearchResultsFiltered, timeTaken, true);
+      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), spotifySearchResults, timeTaken, true);
       logger.info(String.format("Existing setlist requested: %s - %s", existingPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
       return setlistCreationResponse;
     }
