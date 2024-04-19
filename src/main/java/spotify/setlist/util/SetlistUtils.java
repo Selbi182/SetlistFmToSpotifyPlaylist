@@ -2,6 +2,7 @@ package spotify.setlist.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.springframework.util.StringUtils;
@@ -13,8 +14,17 @@ import spotify.setlist.data.Setlist;
 public class SetlistUtils {
   private static final String SETLIST_DESCRIPTION = "Generated with: https://setlistfm.selbi.club";
   private static final int MAX_PLAYLIST_NAME_LENGTH = 100;
-  private static final Pattern LIVE_REGEX = Pattern.compile("[-(].*live", Pattern.CASE_INSENSITIVE);
   private static final Pattern STRING_PURIFICATION_REGEX = Pattern.compile("[^\\p{L}\\p{N}]");
+
+  private static final List<String> ALTERNATE_VERSION_WORDS = List.of(
+    "instrumental",
+    "orchestral",
+    "symphonic",
+    "live",
+    "classic",
+    "demo",
+    "session");
+  private static final Pattern ALTERNATE_VERSION_REGEX = Pattern.compile("[-(].*(" + String.join("|", ALTERNATE_VERSION_WORDS) + ")", Pattern.CASE_INSENSITIVE);
 
   /**
    * Get the setlist ID from a setlist.fm URL.
@@ -136,14 +146,16 @@ public class SetlistUtils {
   }
 
   /**
-   * A very shallow method to test for live songs. Returns true if the given song name
-   * contains the word "live" anywhere past the first hyphen or bracket, case-insensitive.
+   * A very shallow method to test for whether the given track name from Spotify contains a word indicating
+   * it's not the original studio version, such as "live" anywhere past the first hyphen or bracket, case-insensitive.
    *
-   * @param songName the given song name
+   * @param setlistName the name as it was provided by setlist.fm
+   * @param spotifyName the name as it was returned by Spotify
    * @return true if it's a live song
    */
-  public static boolean isShallowLive(String songName) {
-    return LIVE_REGEX.matcher(songName).find();
+  public static boolean containsAlternateVersionWord(String setlistName, String spotifyName) {
+    return ALTERNATE_VERSION_REGEX.matcher(spotifyName).find()
+      && ALTERNATE_VERSION_WORDS.stream().noneMatch(word -> containsIgnoreCase(setlistName, word));
   }
 
   /**

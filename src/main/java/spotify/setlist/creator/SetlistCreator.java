@@ -192,10 +192,10 @@ public class SetlistCreator {
     return TrackSearchResult.notFound(song);
   }
 
-  private TrackSearchResult findBestSearchResult(Setlist.Song song, boolean strictSearch, String songName, List<Track> searchResults, String queryArtistName, boolean allowLive) {
+  private TrackSearchResult findBestSearchResult(Setlist.Song song, boolean strictSearch, String songName, List<Track> searchResults, String queryArtistName, boolean allowAlternateVersions) {
     List<Track> matchingSongs = searchResults.stream()
       .filter(track -> SetlistUtils.isStartContained(queryArtistName, SpotifyUtils.getFirstArtistName(track)))
-      .filter(track -> allowLive || !SetlistUtils.isShallowLive(track.getName()))
+      .filter(track -> allowAlternateVersions || !SetlistUtils.containsAlternateVersionWord(songName, track.getName()))
       .filter(track -> SetlistUtils.containsIgnoreCaseNormalized(track.getName(), songName))
       .sorted(Comparator.comparing(t -> t.getAlbum().getReleaseDate()))
       .collect(Collectors.toList());

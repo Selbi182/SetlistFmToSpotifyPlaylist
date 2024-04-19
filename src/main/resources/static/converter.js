@@ -114,7 +114,19 @@ function displayResults(setlistCreationResponse) {
       searchResultType.classList.add("search-result-type");
       searchResultType.innerHTML = searchResult.resultType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 
-      searchResultRow.append(searchResultIndex, searchResultName, searchResultType);
+      let searchResultTypeIcon = document.createElement("td");
+
+      const iconMapping = {
+        "MATCH": "\u2714",
+        "CLOSE_MATCH": "\uFE0F\u2713",
+        "COVER_ORIGINAL": "\uD83D\uDD04\uFE0E",
+        "SKIPPED": "\u23E9\uFE0E",
+        "NOT_FOUND": "\u274C\uFE0E"
+      };
+      searchResultTypeIcon.classList.add("search-result-type-icon");
+      searchResultTypeIcon.innerHTML = iconMapping[searchResult.resultType];
+
+      searchResultRow.append(searchResultIndex, searchResultName, searchResultType, searchResultTypeIcon);
       searchResultsContainer.append(searchResultRow);
     }
   }
