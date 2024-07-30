@@ -173,7 +173,6 @@ header {
     padding: 0.5em;
     width: fit-content;
 }
-
 #submit.hide {
     display: none;
 }
@@ -183,11 +182,9 @@ header {
     font-size: 100%;
     display: none;
 }
-
 #format-info.show {
     display: initial;
 }
-
 #format-info-example {
     font-family: Consolas, monospace;
 }
@@ -195,7 +192,6 @@ header {
 #spinner {
     display: none;
 }
-
 #spinner.show {
     display: inline-block;
     border: 0.2em solid white;
@@ -204,6 +200,13 @@ header {
     animation: rotating 1s linear infinite;
     width: 2em;
     height: 2em;
+}
+
+#progress-info {
+    display: none;
+}
+#progress-info.show {
+    display: initial;
 }
 
 #playlist-embed {

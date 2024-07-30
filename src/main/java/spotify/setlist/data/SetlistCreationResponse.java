@@ -2,7 +2,7 @@ package spotify.setlist.data;
 
 import java.util.List;
 
-@SuppressWarnings("unused")
+
 public class SetlistCreationResponse {
   private final Setlist setlist;
   private final String playlistId;

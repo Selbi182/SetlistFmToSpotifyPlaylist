@@ -54,15 +54,15 @@
       <input id="input" placeholder="Copy-paste a valid setlist.fm URL..." autocomplete="off">
       <div id="options">
         <div id="detailed-options">Click here to explain these settings...</div>
-        <div title="Whether to include songs tagged as @Tape or not, including songs played from tape that are by other artists. These are the grayed-out songs in setlists.">
+        <div title="Whether to include songs tagged as @Tape (the grayed-out songs in setlists), including songs played from tape that are by other artists.">
           <input type="checkbox" id="tapes" name="tapes" checked>
           <label for="tapes">Tapes</label>
         </div>
-        <div title="If an official cover by the band couldn't be found, the original song by the original artist will be used instead of simply leaving a blank in the playlist.">
+        <div title="Some artists release official studio versions of covers. Those will always be included if possible. But if an official cover by the band couldn't be found, the original song by the original artist will be used instead of simply leaving a blank in the playlist. If you don't want that, disable this option.">
           <input type="checkbox" id="covers" name="covers" checked>
           <label for="covers">Cover Originals</label>
         </div>
-        <div title="Songs that are separated by ' / ' (space-slash-space) will be split and added one after another. Otherwise, the entire medley will be left out.">
+        <div title="If enabled, songs that are separated by ' / ' (space-slash-space) will be split and all added as individual songs to the playlist. Otherwise, the entire medley will be excluded.">
           <input type="checkbox" id="medleys" name="medleys" checked>
           <label for="medleys">Medleys</label>
         </div>
@@ -77,6 +77,7 @@
         <div id="format-info-example">https://www.setlist.fm/setlist/artist/year/venue-city-country-id.html</div>
       </div>
       <div id="spinner"></div>
+      <div id="progress-info"></div>
       <div id="playlist-embed"></div>
       <div id="results">
         <a id="direct-link" target="_blank"></a>
@@ -84,7 +85,7 @@
       </div>
     </div>
     <footer>
-      <div>This service is neither affiliated with<wbr/> nor endorsed by Spotify<sup>&reg;</sup> or setlist.fm<sup>&trade;</sup></div>
+      <div>This service is neither affiliated with<wbr/> nor endorsed by setlist.fm<sup>&trade;</sup> or Spotify<sup>&reg;</sup></div>
       <a href="https://selbi.club/" target="_blank">&copy; <span id="copyright-year">2023</span> Selbi</a>
       <div id="kofi-button"></div>
     </footer>

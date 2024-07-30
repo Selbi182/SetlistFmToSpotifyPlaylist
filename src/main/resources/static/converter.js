@@ -1,6 +1,8 @@
 const inputField = document.getElementById("input");
 const submitButton = document.getElementById("submit");
+const options = document.getElementById("options");
 const spinner = document.getElementById("spinner");
+const progressInfo = document.getElementById("progress-info");
 
 // Entry Point
 window.addEventListener('load', () => initPage());
@@ -8,25 +10,41 @@ window.addEventListener('load', () => initPage());
 /////////////////////////////
 // Main Web Request Handling
 
+let resultsFound = false;
+
 function createSpotifyPlaylistFromSetlistFmSetlist(url) {
   if (isValidSetlistUrl(url)) {
     let options = [...document.querySelectorAll('#options input:checked')].map(e => e.id).join(",");
-    setFormDisabled(true);
+    setFormEnabled(false);
 
-    fetch(`/create?url=${url}&options=${options}`)
-      .then(response => {
-        if (response.status >= 200 && response.status < 300) {
-          return response.json();
+    let socket = new WebSocket(`/convert-ws`);
+    socket.onopen = () => {
+      socket.send(JSON.stringify({
+        url: url,
+        options: options
+      }));
+    };
+    socket.onmessage = (event) => {
+      let data = event.data;
+      if (data === "ERROR") {
+        alert(errorText);
+        socket.close();
+      }
+      try {
+        let json = JSON.parse(data);
+        if (json.hasOwnProperty("searchResults")) {
+          resultsFound = true;
+          displayResults(json);
+          socket.close();
         }
-        throw errorText;
-      })
-      .then(setlistCreationResponse => {
-        displayResults(setlistCreationResponse);
-      })
-      .catch(ex => {
-        alert(ex);
-        setFormDisabled(false);
-      });
+      } catch(ex) {
+        progressInfo.textContent = data;
+      }
+
+    };
+    socket.onclose = () => {
+      setFormEnabled(true);
+    };
   }
 }
 
@@ -209,20 +227,29 @@ function verifyUrl(url) {
   }
 }
 
-function setFormDisabled(disabled) {
-  let options = document.getElementById("options");
-  if (disabled) {
+function setFormEnabled(enabled) {
+  if (resultsFound) {
     inputField.setAttribute("disabled", "");
     submitButton.setAttribute("disabled", "");
-    submitButton.innerHTML = "Creating Playlist...";
-    spinner.classList.add("show");
+    spinner.classList.remove("show");
+    progressInfo.classList.remove("show");
     options.classList.add("hide");
   } else {
-    inputField.removeAttribute("disabled");
-    submitButton.removeAttribute("disabled");
-    submitButton.innerHTML = "Create Playlist";
-    spinner.classList.remove("show");
-    options.classList.remove("hide");
+    if (enabled) {
+      inputField.removeAttribute("disabled");
+      submitButton.removeAttribute("disabled");
+      submitButton.innerHTML = "Create Playlist";
+      spinner.classList.remove("show");
+      progressInfo.classList.remove("show");
+      options.classList.remove("hide");
+    } else {
+      inputField.setAttribute("disabled", "");
+      submitButton.setAttribute("disabled", "");
+      submitButton.innerHTML = "Creating Playlist...";
+      spinner.classList.add("show");
+      progressInfo.classList.add("show");
+      options.classList.add("hide");
+    }
   }
 }
 

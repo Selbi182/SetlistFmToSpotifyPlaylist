@@ -1,8 +1,8 @@
 package spotify.setlist.setlistfm;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -18,7 +18,7 @@ import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
 import spotify.setlist.data.Setlist;
 
 public class SetlistFmApi {
-  private static final DateTimeFormatter PARSE_LFM_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.US);
+  private static final SimpleDateFormat PARSE_LFM_DATE_FORMATTER = new SimpleDateFormat("dd-MM-yyyy", Locale.US);
 
   public static Setlist getSetlist(String setlistFmId, String setlistFmApiToken) throws NotFoundException {
     try {
@@ -32,7 +32,7 @@ public class SetlistFmApi {
       JsonObject json = JsonParser.parseString(rawJson).getAsJsonObject();
 
       String artistName = json.get("artist").getAsJsonObject().get("name").getAsString();
-      LocalDate eventDate = LocalDate.parse(json.get("eventDate").getAsString(), PARSE_LFM_DATE_FORMATTER);
+      Date eventDate = PARSE_LFM_DATE_FORMATTER.parse(json.get("eventDate").getAsString());
       JsonObject venueJson = json.get("venue").getAsJsonObject();
       JsonElement cityJson = venueJson.get("city");
       String country = cityJson.getAsJsonObject().get("country").getAsJsonObject().get("name").getAsString();
@@ -62,7 +62,10 @@ public class SetlistFmApi {
             String originalArtist = isCover
               ? songInfo.get("cover").getAsJsonObject().get("name").getAsString()
               : artistName;
-            Setlist.Song setlistSong = new Setlist.Song(index, medleyPartOrSingleSong, artistName, originalArtist, isTape, isCover, isMedleyPart);
+
+            String info = songInfo.has("info") ? songInfo.get("info").getAsString() : null;
+
+            Setlist.Song setlistSong = new Setlist.Song(index, medleyPartOrSingleSong, artistName, originalArtist, info, isTape, isCover, isMedleyPart);
             setlistSongs.add(setlistSong);
           }
         }

@@ -1,5 +1,6 @@
 package spotify.setlist.creator;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -12,6 +13,8 @@ import javax.annotation.PostConstruct;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
@@ -85,20 +88,22 @@ public class SetlistCreator {
    * @return a SetlistCreationResponse with the result
    * @throws NotFoundException if either the setlist or any of its songs couldn't be found
    */
-  public SetlistCreationResponse convertSetlistToPlaylist(String setlistFmId, String options) throws NotFoundException {
+  public SetlistCreationResponse convertSetlistToPlaylist(String setlistFmId, String options, WebSocketSession session) throws NotFoundException {
     long start = System.currentTimeMillis();
 
     // Find the setlist.fm setlist
+    sendMessage(session, "Fetching data from setlist.fm...");
     Setlist setlist = SetlistFmApi.getSetlist(setlistFmId, setlistFmApiToken);
 
     // Assemble the name for the playlist and search for each song on Spotify
     String setlistName = setlist.toString();
-    List<TrackSearchResult> spotifySearchResults = findSongsOnSpotify(setlist, options);
+    List<TrackSearchResult> spotifySearchResults = findSongsOnSpotify(setlist, options, session);
     int totalSetlistSongsCount = setlist.getSongs().size();
     long searchResultCount = spotifySearchResults.stream()
       .filter(TrackSearchResult::hasResult)
       .count();
     if (spotifySearchResults.isEmpty() || searchResultCount < totalSetlistSongsCount / 2) {
+      sendMessage(session, "Operation failed.");
       throw new NotFoundException("No songs found");
     }
 
@@ -109,6 +114,7 @@ public class SetlistCreator {
 
     // Search for existing playlists that match the name and tracks
     // If there is a match, return that instead one instead of creating an entirely new playlist
+    sendMessage(session, "Looking for existing playlist...");
     Optional<Playlist> existingSetlistPlaylist = creationCache.searchForExistingSetlistPlaylist(setlistName, spotifySearchResultsFiltered);
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
@@ -119,11 +125,14 @@ public class SetlistCreator {
     }
 
     // Create the playlist on Spotify with appropriate name, description, and image
+    sendMessage(session, "Creating new playlist...");
     String description = SetlistUtils.assembleDescription(setlist);
     Playlist targetPlaylist = playlistService.createPlaylist(setlistName, description, true);
-    attachArtistImage(setlist.getArtistName(), targetPlaylist);
+    sendMessage(session, "Adding tracks to playlist...");
     List<Track> tracksToAdd = spotifySearchResultsFiltered.stream().map(TrackSearchResult::getSearchResult).collect(Collectors.toList());
     playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
+    sendMessage(session, "Almost there...");
+    attachArtistImage(setlist.getArtistName(), targetPlaylist);
 
     // Log and return the result
     long timeTaken = System.currentTimeMillis() - start;
@@ -133,7 +142,7 @@ public class SetlistCreator {
     return setlistCreationResponse;
   }
 
-  private List<TrackSearchResult> findSongsOnSpotify(Setlist setlist, String options) {
+  private List<TrackSearchResult> findSongsOnSpotify(Setlist setlist, String options, WebSocketSession session) {
     List<String> splitOptions = Arrays.asList(options.split(","));
     boolean includeTapes = splitOptions.contains("tapes");
     boolean includeCoverOriginals = splitOptions.contains("covers");
@@ -143,8 +152,11 @@ public class SetlistCreator {
     // This was originally done using SpotifyOptimizedExecutorService,
     // but ironically enough, it is significantly faster in a simple for-loop,
     // as it's less likely to cause 429 Too Many Requests errors this way.
+    List<Setlist.Song> songs = setlist.getSongs();
     List<TrackSearchResult> trackSearchResults = new ArrayList<>();
-    for (Setlist.Song song : setlist.getSongs()) {
+    for (int i = 0; i < songs.size(); i++) {
+      Setlist.Song song = songs.get(i);
+      sendMessage(session, String.format("Searching for the tracks on Spotify... (%d of %d)", i + 1, songs.size()));
       boolean notSkipped = !song.isTape() && !song.isMedleyPart()
         || song.isTape() && includeTapes
         || song.isMedleyPart() && includeMedleys;
@@ -289,6 +301,14 @@ public class SetlistCreator {
     }
     if (remainingAttempts <= 0) {
       logger.warning("Failed to attach artist image -- " + artistName);
+    }
+  }
+  
+  private void sendMessage(WebSocketSession session, String text) {
+    try {
+      session.sendMessage(new TextMessage(text));
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 }

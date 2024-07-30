@@ -1,6 +1,6 @@
 package spotify.setlist.data;
 
-import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -10,13 +10,13 @@ import spotify.setlist.util.SetlistUtils;
 @SuppressWarnings("unused")
 public class Setlist {
   private final String artistName;
-  private final LocalDate eventDate;
+  private final Date eventDate;
   private final String city;
   private final String venue;
   private final String tourName;
   private final List<Song> songs;
 
-  public Setlist(String artistName, LocalDate eventDate, String city, String venue, String tourName, List<Song> songs) {
+  public Setlist(String artistName, Date eventDate, String city, String venue, String tourName, List<Song> songs) {
     this.artistName = artistName;
     this.eventDate = eventDate;
     this.city = city;
@@ -29,7 +29,7 @@ public class Setlist {
     return artistName;
   }
 
-  public LocalDate getEventDate() {
+  public Date getEventDate() {
     return eventDate;
   }
 
@@ -69,22 +69,24 @@ public class Setlist {
     private final String songName;
     private final String artistName;
     private final String originalArtistName;
+    private final String info;
     private final boolean tape;
     private final boolean cover;
     private final boolean medleyPart;
 
-    public Song(int index, String songName, String artistName, String originalArtistName, boolean tape, boolean cover, boolean medleyPart) {
+    public Song(int index, String songName, String artistName, String originalArtistName, String info, boolean tape, boolean cover, boolean medleyPart) {
       this.index = index;
       this.songName = songName;
       this.artistName = artistName;
       this.originalArtistName = originalArtistName;
+      this.info = info;
       this.tape = tape;
       this.cover = cover;
       this.medleyPart = medleyPart;
     }
 
     public Song(Song song) {
-      this(song.getIndex(), song.getSongName(), song.getArtistName(), song.getOriginalArtistName(), song.isTape(), song.isCover(), song.isMedleyPart());
+      this(song.getIndex(), song.getSongName(), song.getArtistName(), song.getOriginalArtistName(), song.getInfo(), song.isTape(), song.isCover(), song.isMedleyPart());
     }
 
     public int getIndex() {
@@ -101,6 +103,13 @@ public class Setlist {
 
     public String getOriginalArtistName() {
       return originalArtistName;
+    }
+
+    public String getInfo() {
+      if (info == null) {
+        return "";
+      }
+      return info;
     }
 
     public boolean isTape() {

@@ -2,7 +2,12 @@ package spotify.setlist.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.temporal.ChronoField;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import org.springframework.util.StringUtils;
@@ -15,6 +20,7 @@ public class SetlistUtils {
   private static final String SETLIST_DESCRIPTION = "Generated with: https://setlistfm.selbi.club";
   private static final int MAX_PLAYLIST_NAME_LENGTH = 100;
   private static final Pattern STRING_PURIFICATION_REGEX = Pattern.compile("[^\\p{L}\\p{N}]");
+  private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
   private static final List<String> ALTERNATE_VERSION_WORDS = List.of(
     "instrumental",
@@ -52,7 +58,7 @@ public class SetlistUtils {
    * @return the name
    */
   public static String assemblePlaylistName(Setlist setlist) {
-    String year = Integer.toString(setlist.getEventDate().getYear());
+    String year = String.valueOf(setlist.getEventDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate().getYear());
 
     final String tourOrVenue;
     if (setlist.hasTour()) {
@@ -76,7 +82,7 @@ public class SetlistUtils {
    */
   public static String assembleDescription(Setlist setlist) {
     if (setlist.hasTour()) {
-      return String.format("%s (%s) // %s", setlist.venueAndCity(), setlist.getEventDate(), SETLIST_DESCRIPTION);
+      return String.format("%s (%s) // %s", setlist.venueAndCity(), DATE_FORMAT.format(setlist.getEventDate()), SETLIST_DESCRIPTION);
     }
     return SETLIST_DESCRIPTION;
   }
