@@ -224,6 +224,9 @@ function verifyUrl(url) {
   } else {
     submitButton.setAttribute("disabled", "");
     formatInfo.classList.add("show");
+
+    let formatInfoAvg = formatInfo.querySelector("#format-info-avg");
+    formatInfoAvg.classList.toggle("show", url.includes("/average-setlist/"));
   }
 }
 

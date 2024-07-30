@@ -178,7 +178,6 @@ header {
 }
 
 #format-info {
-    opacity: 0.65;
     font-size: 100%;
     display: none;
 }
@@ -187,6 +186,16 @@ header {
 }
 #format-info-example {
     font-family: Consolas, monospace;
+}
+#format-info-avg {
+    display: none;
+    color: red;
+    background: black;
+    padding: 0.5em;
+    margin-bottom: 1em;
+}
+#format-info-avg.show {
+    display: block;
 }
 
 #spinner {
