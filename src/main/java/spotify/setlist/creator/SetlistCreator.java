@@ -19,6 +19,7 @@ import org.springframework.web.socket.WebSocketSession;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
+import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
@@ -34,6 +35,8 @@ import spotify.util.SpotifyUtils;
 
 @Component
 public class SetlistCreator {
+  public static boolean debugMode = false;
+
   private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_bot.setlist_fm_api_token";
   private static final String SETLIST_FM_DEBUG_ENV = "setlist_bot.debug_mode";
 
@@ -71,7 +74,9 @@ public class SetlistCreator {
     }
 
     String debugModeEnv = environment.getProperty(SETLIST_FM_DEBUG_ENV);
-    if ("true".equals(debugModeEnv)) {
+    debugMode = "true".equals(debugModeEnv);
+
+    if (debugMode) {
       logger.warning("Debug mode enabled, playlist counter calculation has been skipped!");
     } else {
       logger.info("Calculating and cleaning up existing playlists... (this might take a while)");
@@ -131,14 +136,29 @@ public class SetlistCreator {
     sendMessage(session, "Adding tracks to playlist...");
     List<Track> tracksToAdd = spotifySearchResultsFiltered.stream().map(TrackSearchResult::getSearchResult).collect(Collectors.toList());
     playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
-    sendMessage(session, "Almost there...");
-    attachArtistImage(setlist.getArtistName(), targetPlaylist);
+
+    // Attach image
+    sendMessage(session, "Attaching image...");
+    tracksToAdd.stream()
+      .filter(t -> SpotifyUtils.getFirstArtistName(t).equals(setlist.getArtistName()))
+      .findFirst()
+      .ifPresent(t -> {
+        ArtistSimplified artist = t.getArtists()[0];
+        Artist fullArtist = SpotifyCall.execute(spotifyApi.getArtist(artist.getId()));
+        attachArtistImage(fullArtist, targetPlaylist);
+      });
 
     // Log and return the result
+    sendMessage(session, "Almost there...");
     long timeTaken = System.currentTimeMillis() - start;
     SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), spotifySearchResults, timeTaken, false);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
-    creationCache.addSetlistToCache(setlistName, targetPlaylist.getId());
+    if (debugMode) {
+      SpotifyCall.execute(spotifyApi.unfollowPlaylist(targetPlaylist.getId()));
+      logger.warning("Debug playlist deleted!");
+    } else {
+      creationCache.addSetlistToCache(setlistName, targetPlaylist.getId());
+    }
     return setlistCreationResponse;
   }
 
@@ -278,29 +298,21 @@ public class SetlistCreator {
    *       automatically retry the attachment process up to 10 times, which so far has
    *       always worked.
    *
-   * @param artistName the artist name to search for
+   * @param artist the artist to get the image from
    * @param targetPlaylist the playlist to attach the image to
    */
-  private void attachArtistImage(String artistName, Playlist targetPlaylist) {
-    attachArtistImage(artistName, targetPlaylist, 10);
-  }
-
-  private void attachArtistImage(String artistName, Playlist targetPlaylist, int remainingAttempts) {
-    try {
-      if (remainingAttempts > 0) {
-        Artist[] artists = SpotifyCall.execute(spotifyApi.searchArtists(artistName)).getItems();
-        if (artists.length > 0) {
-          Artist artist = artists[0];
-          String image = SpotifyUtils.findLargestImage(artist.getImages());
+  private void attachArtistImage(Artist artist, Playlist targetPlaylist) {
+    String image = SpotifyUtils.findLargestImage(artist.getImages());
+    if (image != null) {
+      for (int i = 1; i <= 10; i++) {
+        try {
           playlistService.attachImageToPlaylist(targetPlaylist, image);
+          return;
+        } catch (Exception e) {
+          logger.debug("Retrying attaching artist image for " + artist.getName() + " (attempt: " + i + ")");
         }
       }
-    } catch (Exception e) {
-      attachArtistImage(artistName, targetPlaylist, remainingAttempts - 1);
-      logger.debug("Retrying attaching artist image for " + artistName + " (remaining attempts: " + (remainingAttempts - 1) + ")");
-    }
-    if (remainingAttempts <= 0) {
-      logger.warning("Failed to attach artist image -- " + artistName);
+      logger.error("Failed to attach artist image -- " + artist.getName());
     }
   }
   

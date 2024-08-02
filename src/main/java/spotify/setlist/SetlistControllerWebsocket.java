@@ -49,6 +49,7 @@ public class SetlistControllerWebsocket implements WebSocketConfigurer {
       String s = objectMapper.writeValueAsString(setlistCreationResponse1);
       session.sendMessage(new TextMessage(s));
     } catch (Exception e) {
+      e.printStackTrace();
       session.sendMessage(new TextMessage("ERROR"));
     } finally {
       semaphore.release();
