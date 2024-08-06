@@ -5,13 +5,15 @@ import java.util.List;
 
 public class SetlistCreationResponse {
   private final Setlist setlist;
+  private final SetlistCreationOptions usedOptions;
   private final String playlistId;
   private final List<TrackSearchResult> searchResults;
   private final long timeTaken;
   private final boolean reused;
 
-  public SetlistCreationResponse(Setlist setlist, String playlistId, List<TrackSearchResult> searchResults, long timeTaken, boolean reused) {
+  public SetlistCreationResponse(Setlist setlist, SetlistCreationOptions usedOptions, String playlistId, List<TrackSearchResult> searchResults, long timeTaken, boolean reused) {
     this.setlist = setlist;
+    this.usedOptions = usedOptions;
     this.playlistId = playlistId;
     this.searchResults = searchResults;
     this.timeTaken = timeTaken;
@@ -20,6 +22,10 @@ public class SetlistCreationResponse {
 
   public Setlist getSetlist() {
     return setlist;
+  }
+
+  public SetlistCreationOptions getUsedOptions() {
+    return usedOptions;
   }
 
   public String getPlaylistId() {

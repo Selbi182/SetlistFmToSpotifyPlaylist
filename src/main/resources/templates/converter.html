@@ -54,20 +54,28 @@
       <input id="input" placeholder="Copy-paste a valid setlist.fm URL..." autocomplete="off">
       <div id="options">
         <div id="detailed-options">Click here to explain these settings...</div>
-        <div title="Whether to include songs tagged as @Tape (the grayed-out songs in setlists), including songs played from tape that are by other artists.">
-          <input type="checkbox" id="tapes" name="tapes" checked>
-          <label for="tapes">Tapes</label>
+        <div title="Whether to include songs tagged as @Tape (the grayed-out songs in setlists) composed by the performer of the show.">
+          <input type="checkbox" autocomplete="off" id="tapes-main" name="tapes-main">
+          <label for="tapes-main">Main Tapes</label>
         </div>
-        <div title="Some artists release official studio versions of covers. Those will always be included if possible. But if an official cover by the band couldn't be found, the original song by the original artist will be used instead of simply leaving a blank in the playlist. If you don't want that, disable this option.">
-          <input type="checkbox" id="covers" name="covers" checked>
+        <div title="Whether to include songs tagged as @Tape composed by OTHER artists. These find frequent use as openers, such as Metallica beginning all of their shows with 'The Ecstasy Of Gold' by Ennio Morricone.">
+          <input type="checkbox" autocomplete="off" id="tapes-foreign" name="tapes-foreign">
+          <label for="tapes-foreign">Foreign Tapes</label>
+        </div>
+        <div title="Some artists release official studio versions of covers; those will always be included if possible. But if an official cover by the band couldn't be found, the original song by the original artist will be used instead of simply leaving a blank in the playlist. If you don't want this fallback, disable this option.">
+          <input type="checkbox" autocomplete="off" id="covers" name="covers">
           <label for="covers">Cover Originals</label>
         </div>
         <div title="If enabled, songs that are separated by ' / ' (space-slash-space) will be split and all added as individual songs to the playlist. Otherwise, the entire medley will be excluded.">
-          <input type="checkbox" id="medleys" name="medleys" checked>
+          <input type="checkbox" autocomplete="off" id="medleys" name="medleys">
           <label for="medleys">Medleys</label>
         </div>
-        <div title="Dictates which search logic should be used internally. If disabled, it's simply the track title and the artist name of each individual song. Otherwise it follows the syntax 'track:NAME artist:NAME'. This prevents accidental additions by unrelated artists, but it struggles with songs that tend to have a lot of special characters. Consider disabling only if you get too many song misses.">
-          <input type="checkbox" id="strict-search" name="strict-search" checked>
+        <div title="Search for an image of the artist on Spotify and use that as playlist thumbnail. Do note that this takes quite a bit of time!">
+          <input type="checkbox" autocomplete="off" id="attach-image" name="attach-image">
+          <label for="attach-image">Attach Image</label>
+        </div>
+        <div id="strict-search-wrapper" title="Dictates which search logic should be used internally. If disabled, it's simply the track title and the artist name of each individual song. Otherwise it follows the syntax 'track:NAME artist:NAME'. This prevents accidental additions by unrelated artists, but it struggles with songs that tend to have a lot of special characters. Consider disabling ONLY if you get too many song misses!">
+          <input type="checkbox" autocomplete="off" id="strict-search" name="strict-search">
           <label for="strict-search">Strict Search</label>
         </div>
       </div>

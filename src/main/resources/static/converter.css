@@ -222,6 +222,11 @@ header {
     width: 100%;
 }
 
+#strict-search-wrapper {
+    /* Hide strict search container, no longer needed */
+    display: none !important;
+}
+
 /********/
 
 #results {

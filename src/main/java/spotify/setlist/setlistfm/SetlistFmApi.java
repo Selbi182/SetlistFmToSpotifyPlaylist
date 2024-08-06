@@ -53,6 +53,9 @@ public class SetlistFmApi {
           index++;
           JsonObject songInfo = song.getAsJsonObject();
           String songName = songInfo.get("name").getAsString();
+          if (songName.isBlank()) {
+            songName = "[Generic Track]";
+          }
           boolean isTape = songInfo.has("tape") && songInfo.get("tape").getAsBoolean();
           boolean isCover = songInfo.has("cover");
 

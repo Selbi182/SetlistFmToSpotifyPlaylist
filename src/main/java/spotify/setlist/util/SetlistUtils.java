@@ -4,8 +4,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.time.ZoneId;
-import java.time.temporal.ChronoField;
-import java.util.Calendar;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -15,6 +14,7 @@ import org.springframework.util.StringUtils;
 import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.setlist.data.Setlist;
+import spotify.setlist.data.SetlistCreationOptions;
 
 public class SetlistUtils {
   private static final String SETLIST_DESCRIPTION = "Generated with: https://setlistfm.selbi.club";
@@ -45,6 +45,23 @@ public class SetlistUtils {
     String[] segments = path.split("-");
     String lastSegment = segments[segments.length - 1];
     return lastSegment.split("\\.")[0];
+  }
+
+  /**
+   * Get the options from the URL parameter as proper object.
+   *
+   * @param options the input options from the query URL, separated by comma without spaces
+   * @return a {@link SetlistCreationOptions} object representing the options
+   */
+  public static SetlistCreationOptions getOptionsFromUrl(String options) {
+    List<String> splitOptions = Arrays.asList(options.split(","));
+    boolean includeTapesMain = splitOptions.contains("tapes-main");
+    boolean includeTapesForeign = splitOptions.contains("tapes-foreign");
+    boolean includeCoverOriginals = splitOptions.contains("covers");
+    boolean includeMedleys = splitOptions.contains("medleys");
+    boolean attachImage = splitOptions.contains("attach-image");
+    boolean strictSearch = splitOptions.contains("strict-search");
+    return new SetlistCreationOptions(includeTapesMain, includeTapesForeign, includeCoverOriginals, includeMedleys, attachImage, strictSearch);
   }
 
   /**

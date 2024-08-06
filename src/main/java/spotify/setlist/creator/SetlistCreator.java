@@ -25,6 +25,7 @@ import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
 import spotify.services.PlaylistService;
 import spotify.setlist.data.Setlist;
+import spotify.setlist.data.SetlistCreationOptions;
 import spotify.setlist.data.SetlistCreationResponse;
 import spotify.setlist.data.TrackSearchResult;
 import spotify.setlist.setlistfm.SetlistFmApi;
@@ -89,11 +90,11 @@ public class SetlistCreator {
    * Create a setlist playlist from the given setlist.fm ID
    *
    * @param setlistFmId the setlist.fm ID
-   * @param options any potential option flags (separated by comma)
+   * @param options any potential option flags
    * @return a SetlistCreationResponse with the result
    * @throws NotFoundException if either the setlist or any of its songs couldn't be found
    */
-  public SetlistCreationResponse convertSetlistToPlaylist(String setlistFmId, String options, WebSocketSession session) throws NotFoundException {
+  public SetlistCreationResponse convertSetlistToPlaylist(String setlistFmId, SetlistCreationOptions options, WebSocketSession session) throws NotFoundException {
     long start = System.currentTimeMillis();
 
     // Find the setlist.fm setlist
@@ -124,7 +125,7 @@ public class SetlistCreator {
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
       long timeTaken = System.currentTimeMillis() - start;
-      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, existingPlaylist.getId(), spotifySearchResults, timeTaken, true);
+      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, options, existingPlaylist.getId(), spotifySearchResults, timeTaken, true);
       logger.info(String.format("Existing setlist requested: %s - %s", existingPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
       return setlistCreationResponse;
     }
@@ -138,20 +139,22 @@ public class SetlistCreator {
     playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
 
     // Attach image
-    sendMessage(session, "Attaching image...");
-    tracksToAdd.stream()
-      .filter(t -> SpotifyUtils.getFirstArtistName(t).equals(setlist.getArtistName()))
-      .findFirst()
-      .ifPresent(t -> {
-        ArtistSimplified artist = t.getArtists()[0];
-        Artist fullArtist = SpotifyCall.execute(spotifyApi.getArtist(artist.getId()));
-        attachArtistImage(fullArtist, targetPlaylist);
-      });
+    if (options.isAttachImage() && !debugMode) {
+      sendMessage(session, "Attaching image...");
+      tracksToAdd.stream()
+        .filter(t -> SpotifyUtils.getFirstArtistName(t).equals(setlist.getArtistName()))
+        .findFirst()
+        .ifPresent(t -> {
+          ArtistSimplified artist = t.getArtists()[0];
+          Artist fullArtist = SpotifyCall.execute(spotifyApi.getArtist(artist.getId()));
+          attachArtistImage(fullArtist, targetPlaylist);
+        });
+    }
 
     // Log and return the result
     sendMessage(session, "Almost there...");
     long timeTaken = System.currentTimeMillis() - start;
-    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, targetPlaylist.getId(), spotifySearchResults, timeTaken, false);
+    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, options, targetPlaylist.getId(), spotifySearchResults, timeTaken, false);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
     if (debugMode) {
       SpotifyCall.execute(spotifyApi.unfollowPlaylist(targetPlaylist.getId()));
@@ -162,13 +165,7 @@ public class SetlistCreator {
     return setlistCreationResponse;
   }
 
-  private List<TrackSearchResult> findSongsOnSpotify(Setlist setlist, String options, WebSocketSession session) {
-    List<String> splitOptions = Arrays.asList(options.split(","));
-    boolean includeTapes = splitOptions.contains("tapes");
-    boolean includeCoverOriginals = splitOptions.contains("covers");
-    boolean includeMedleys = splitOptions.contains("medleys");
-    boolean strictSearch = splitOptions.contains("strict-search");
-
+  private List<TrackSearchResult> findSongsOnSpotify(Setlist setlist, SetlistCreationOptions options, WebSocketSession session) {
     // This was originally done using SpotifyOptimizedExecutorService,
     // but ironically enough, it is significantly faster in a simple for-loop,
     // as it's less likely to cause 429 Too Many Requests errors this way.
@@ -178,10 +175,10 @@ public class SetlistCreator {
       Setlist.Song song = songs.get(i);
       sendMessage(session, String.format("Searching for the tracks on Spotify... (%d of %d)", i + 1, songs.size()));
       boolean notSkipped = !song.isTape() && !song.isMedleyPart()
-        || song.isTape() && includeTapes
-        || song.isMedleyPart() && includeMedleys;
+        || song.isTape() && (song.isCover() ? options.isIncludeTapesForeign() : options.isIncludeTapesMain())
+        || song.isMedleyPart() && options.isIncludeMedleys();
       if (notSkipped) {
-        TrackSearchResult trackSearchResult = searchTrack(song, includeCoverOriginals, strictSearch);
+        TrackSearchResult trackSearchResult = searchTrack(song, options.isIncludeCoverOriginals(), options.isStrictSearch());
         trackSearchResults.add(trackSearchResult);
       } else {
         trackSearchResults.add(TrackSearchResult.skipped(song));

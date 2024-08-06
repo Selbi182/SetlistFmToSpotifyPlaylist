@@ -12,16 +12,16 @@ window.addEventListener('load', () => initPage());
 
 let resultsFound = false;
 
+
 function createSpotifyPlaylistFromSetlistFmSetlist(url) {
   if (isValidSetlistUrl(url)) {
-    let options = [...document.querySelectorAll('#options input:checked')].map(e => e.id).join(",");
     setFormEnabled(false);
 
     let socket = new WebSocket(`/convert-ws`);
     socket.onopen = () => {
       socket.send(JSON.stringify({
         url: url,
-        options: options
+        options: getSelectedSettings()
       }));
     };
     socket.onmessage = (event) => {
@@ -182,6 +182,26 @@ function initPage() {
   // Show counter
   document.getElementById("counter").classList.add("show");
 
+  // Load stored settings
+  let storedSettings = loadStoredSettings();
+  if (!!storedSettings) {
+    let previousOptionsArray = storedSettings.split(",");
+    getOptionElems()
+      .filter(e => previousOptionsArray.includes(e.id))
+      .forEach(e => e.checked = true);
+    console.info("Loaded stored settings: " + previousOptionsArray)
+  } else {
+    // Check all by default
+    getOptionElems()
+      .forEach(e => e.setAttribute("checked", ""));
+    console.info("No previous settings found, enabling everything by default!")
+  }
+
+  // Update stored settings whenever a checkbox is changed
+  options.onclick = () => {
+    saveSettingsToStore();
+  }
+
   // Verify URL when editing the text box
   inputField.oninput = (e) => {
     verifyUrl(e.target.value);
@@ -206,6 +226,28 @@ function initPage() {
     verifyUrl(autoSetlistUrl);
     submitButton.click();
   }
+}
+
+/////////////////////////////
+// Settings Management
+
+function getOptionElems() {
+  return [...document.querySelectorAll('#options input')];
+}
+
+function getSelectedSettings() {
+  return getOptionElems()
+    .filter(e => e.checked)
+    .map(e => e.id).join(",");
+}
+
+const settingsStoreKey = "setlistOptions";
+function loadStoredSettings() {
+  return localStorage.getItem(settingsStoreKey);
+}
+function saveSettingsToStore() {
+  let settingsToSave = getSelectedSettings();
+  localStorage.setItem(settingsStoreKey, settingsToSave);
 }
 
 /////////////////////////////
