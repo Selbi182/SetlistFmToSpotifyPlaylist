@@ -207,6 +207,13 @@ function initPage() {
     verifyUrl(e.target.value);
   }
 
+  // Submission logic
+  inputField.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      createSpotifyPlaylistFromSetlistFmSetlist(inputField.value);
+    }
+  }
   submitButton.onclick = () => {
     createSpotifyPlaylistFromSetlistFmSetlist(inputField.value);
   }
