@@ -326,8 +326,6 @@ const errorText =
   \u2022 Songs on Spotify don't always have accurate names
   \u2022 Special characters sometimes cause issues with Spotify's search logic
       
-  Please retry the process with 'Strict Search' disabled.
-  
   If the problem persists or if you believe it's a bug, PLEASE report the issue on GitHub or the setlist.fm forum along with a link to the problematic setlist, and I'll gladly take a look at it.
   
   Thank you!`
