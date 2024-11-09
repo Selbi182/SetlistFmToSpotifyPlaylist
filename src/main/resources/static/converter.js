@@ -323,9 +323,8 @@ const errorText =
   Possible reasons:
   \u2022 Couldn't find the setlist on setlist.fm
   \u2022 More than half of the of the songs couldn't be found on Spotify
-  \u2022 Songs on Spotify don't always have accurate names
-  \u2022 Special characters sometimes cause issues with Spotify's search logic
-      
+  \u2022 Spotify's API is currently down (unfortunately, the only option here is to wait...)
+  
   If the problem persists or if you believe it's a bug, PLEASE report the issue on GitHub or the setlist.fm forum along with a link to the problematic setlist, and I'll gladly take a look at it.
   
   Thank you!`

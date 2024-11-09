@@ -74,20 +74,14 @@ public class CreationCache {
     if (playlistOverflowCount > 0) {
       // Housekeeping:
       // Thankfully, the results of getCurrentUsersPlaylists are already in chronological order from newest to oldest,
-      // so all we need to do is start at the bottom and keep looking for dead, unused playlists until we can kill off
-      // enough obsolete ones to land below the target limit of 10000.
+      // so all we need to do is start at the bottom and delete enough old playlists until we land below the target limit of 10000.
 
       ListIterator<PlaylistSimplified> iterator = allUserPlaylists.listIterator(allUserPlaylists.size());
       List<PlaylistSimplified> obsolete = new ArrayList<>();
       while (iterator.hasPrevious() && playlistOverflowCount > 0) {
         PlaylistSimplified ps = iterator.previous();
-
-        Playlist pl = playlistService.getPlaylist(ps.getId());
-        if (pl.getFollowers() != null && pl.getFollowers().getTotal() != null && pl.getFollowers().getTotal() == 0
-          || pl.getTracks() != null && pl.getTracks().getTotal() != null && pl.getTracks().getTotal() == 0) {
-          obsolete.add(ps);
-          playlistOverflowCount--;
-        }
+        obsolete.add(ps);
+        playlistOverflowCount--;
       }
 
       if (!obsolete.isEmpty()) {
