@@ -40,3 +40,4 @@ build/
 spotifybot.properties
 deploy.sh
 /application.properties
+/counter.txt

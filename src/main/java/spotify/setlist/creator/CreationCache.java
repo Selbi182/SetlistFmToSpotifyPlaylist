@@ -1,8 +1,9 @@
 package spotify.setlist.creator;
 
-import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -29,11 +30,23 @@ import spotify.util.SpotifyOptimizedExecutorService;
 @EnableScheduling
 @Component
 public class CreationCache {
+  /**
+   * Limit of playlists a single Spotify account can actually have. This doesn't appear to be documented anywhere,
+   * I learned this the hard way when the bot stopped working one day at exactly this amount of playlists.
+   */
+  public static final int SPOTIFY_PLAYLIST_LIMIT_REAL = 11000;
+
+  /**
+   * Limit of playlists the bot should target. Currently set to 1000 playlists less.
+   */
+  public static final int SPOTIFY_PLAYLIST_LIMIT_TARGET = SPOTIFY_PLAYLIST_LIMIT_REAL - 1000;
+
+
   private final SpotifyApi spotifyApi;
+  private final CounterManager counterManager;
   private final PlaylistService playlistService;
   private final SpotifyOptimizedExecutorService executorService;
 
-  private final DecimalFormat decimalFormat;
 
   /**
    * Maps setlist names to lists of playlist IDs
@@ -42,46 +55,60 @@ public class CreationCache {
   private final Map<String, List<String>> createdSetlists;
 
   CreationCache (SpotifyApi spotifyApi,
+      CounterManager counterManager,
       PlaylistService playlistService,
       SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
     this.spotifyApi = spotifyApi;
+    this.counterManager = counterManager;
     this.playlistService = playlistService;
     this.executorService = spotifyOptimizedExecutorService;
 
-    this.decimalFormat = new DecimalFormat("#,###");
     this.createdSetlists = new ConcurrentHashMap<>();
   }
 
   @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.DAYS)
   public void refreshCreatedSetlistsCounterAndRemoveDeadPlaylists() {
-    // TODO more proper cleanup of already existing duplicated playlists (from debugging and stuff)
-
     List<PlaylistSimplified> allUserPlaylists = playlistService.getCurrentUsersPlaylists();
 
-    createdSetlists.clear();
-    for (PlaylistSimplified ps : allUserPlaylists) {
-      String name = ps.getName();
-      String id = ps.getId();
-      addSetlistToCache(name, id);
+    int playlistOverflowCount = allUserPlaylists.size() - SPOTIFY_PLAYLIST_LIMIT_TARGET;
+    if (playlistOverflowCount > 0) {
+      // Housekeeping:
+      // Thankfully, the results of getCurrentUsersPlaylists are already in chronological order from newest to oldest,
+      // so all we need to do is start at the bottom and keep looking for dead, unused playlists until we can kill off
+      // enough obsolete ones to land below the target limit of 10000.
+
+      ListIterator<PlaylistSimplified> iterator = allUserPlaylists.listIterator(allUserPlaylists.size());
+      List<PlaylistSimplified> obsolete = new ArrayList<>();
+      while (iterator.hasPrevious() && playlistOverflowCount > 0) {
+        PlaylistSimplified ps = iterator.previous();
+
+        Playlist pl = playlistService.getPlaylist(ps.getId());
+        if (pl.getFollowers() != null && pl.getFollowers().getTotal() != null && pl.getFollowers().getTotal() == 0
+          || pl.getTracks() != null && pl.getTracks().getTotal() != null && pl.getTracks().getTotal() == 0) {
+          obsolete.add(ps);
+          playlistOverflowCount--;
+        }
+      }
+
+      if (!obsolete.isEmpty()) {
+        List<Callable<String>> toRemove = obsolete.stream()
+          .map(pl -> (Callable<String>) () -> SpotifyCall.execute(spotifyApi.unfollowPlaylist(pl.getId())))
+          .collect(Collectors.toList());
+        System.out.println("Deleting " + toRemove.size() + " old playlists!");
+        executorService.executeAndWait(toRemove);
+      }
+
+      // Recursive call to build the creation cache with new data (slow but meh)
+      refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
+    } else {
+      // Build the creation cache
+      createdSetlists.clear();
+      for (PlaylistSimplified ps : allUserPlaylists) {
+        String name = ps.getName();
+        String id = ps.getId();
+        addSetlistToCache(name, id);
+      }
     }
-
-    List<Callable<String>> toRemove = allUserPlaylists.stream()
-      .filter(pl -> (pl.getTracks().getTotal() == 0))
-      .map(pl -> (Callable<String>) () -> SpotifyCall.execute(spotifyApi.unfollowPlaylist(pl.getId())))
-      .collect(Collectors.toList());
-    if (!toRemove.isEmpty()) {
-      executorService.executeAndWait(toRemove);
-    }
-  }
-
-  public int getSetlistCounter() {
-    return createdSetlists.values().stream()
-      .mapToInt(List::size)
-      .sum();
-  }
-
-  public String getSetlistCounterFormatted() {
-    return decimalFormat.format(getSetlistCounter());
   }
 
   protected Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<TrackSearchResult> setlistTracks) {

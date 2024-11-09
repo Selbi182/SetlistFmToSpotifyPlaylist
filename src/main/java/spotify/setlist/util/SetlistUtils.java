@@ -122,7 +122,26 @@ public class SetlistUtils {
    * @return true if it's contained
    */
   public static boolean containsIgnoreCase(String baseString, String containedString) {
-    return baseString.toLowerCase().contains(containedString.toLowerCase());
+    String baseLower = baseString.toLowerCase();
+    String containedLower = containedString.toLowerCase();
+    if (baseLower.contains(containedLower)) {
+      return true;
+    }
+    return unGermanString(baseLower).contains(unGermanString(containedLower));
+  }
+
+  /**
+   * Converts German umlauts into the substitute variants.
+   *
+   * @param input base string
+   * @return the un-German-ed string
+   */
+  public static String unGermanString(String input) {
+    return input.toLowerCase()
+      .replaceAll("ä", "ae")
+      .replaceAll("ö", "oe")
+      .replaceAll("ü", "ue")
+      .replaceAll("ß", "ss");
   }
 
   /**

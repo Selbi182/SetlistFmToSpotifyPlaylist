@@ -12,29 +12,30 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
-import spotify.setlist.creator.CreationCache;
+import spotify.setlist.creator.CounterManager;
 
 @RestController
 public class SetlistController {
-  private final CreationCache creationCache;
+  private final CounterManager counterManager;
+
   private final long bootTime;
 
-  SetlistController(CreationCache creationCache) {
-    this.creationCache = creationCache;
+  SetlistController(CounterManager counterManager) {
+    this.counterManager = counterManager;
     this.bootTime = System.currentTimeMillis();
   }
 
   @RequestMapping("/")
   public ModelAndView converter(Model model) {
     model.addAttribute("bootTime", bootTime);
-    model.addAttribute("playlistCount", creationCache.getSetlistCounterFormatted());
+    model.addAttribute("playlistCount", counterManager.getSetlistCounterFormatted());
     return new ModelAndView("converter.html");
   }
 
   @CrossOrigin
   @RequestMapping("/counter")
-  public ResponseEntity<Integer> createdSetlistsCounter() {
-    return ResponseEntity.ok(creationCache.getSetlistCounter());
+  public ResponseEntity<String> createdSetlistsCounter() {
+    return ResponseEntity.ok(counterManager.getSetlistCounterFormatted());
   }
 
   @ExceptionHandler(NotFoundException.class)

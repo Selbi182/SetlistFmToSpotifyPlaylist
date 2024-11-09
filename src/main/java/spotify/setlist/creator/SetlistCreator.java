@@ -12,7 +12,6 @@ import javax.annotation.PostConstruct;
 
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -42,6 +41,7 @@ public class SetlistCreator {
   private static final String SETLIST_FM_DEBUG_ENV = "setlist_bot.debug_mode";
 
   private final CreationCache creationCache;
+  private final CounterManager counterManager;
   private final SpotifyApi spotifyApi;
   private final PlaylistService playlistService;
   private final SpotifyLogger logger;
@@ -51,12 +51,14 @@ public class SetlistCreator {
   private String setlistFmApiToken;
 
   SetlistCreator(CreationCache creationCache,
+      CounterManager counterManager,
       SpotifyApi spotifyApi,
       PlaylistService playlistService,
       SpotifyLogger spotifyLogger,
       Environment environment,
       SpringPortConfig springPortConfig) {
     this.creationCache = creationCache;
+    this.counterManager = counterManager;
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
     this.logger = spotifyLogger;
@@ -100,9 +102,9 @@ public class SetlistCreator {
     // Find the setlist.fm setlist
     sendMessage(session, "Fetching data from setlist.fm...");
     Setlist setlist = SetlistFmApi.getSetlist(setlistFmId, setlistFmApiToken);
-
-    // Assemble the name for the playlist and search for each song on Spotify
     String setlistName = setlist.toString();
+
+    // Search for each song on Spotify
     List<TrackSearchResult> spotifySearchResults = findSongsOnSpotify(setlist, options, session);
     int totalSetlistSongsCount = setlist.getSongs().size();
     long searchResultCount = spotifySearchResults.stream()
@@ -156,6 +158,7 @@ public class SetlistCreator {
     long timeTaken = System.currentTimeMillis() - start;
     SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, options, targetPlaylist.getId(), spotifySearchResults, timeTaken, false);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
+    counterManager.incrementSetlistCounter();
     if (debugMode) {
       SpotifyCall.execute(spotifyApi.unfollowPlaylist(targetPlaylist.getId()));
       logger.warning("Debug playlist deleted!");
@@ -195,9 +198,10 @@ public class SetlistCreator {
 
     List<Track> searchResults = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems());
 
-    // One-time retry for songs starting with "The ", because sometimes that word is missing on the Spotify version of the track
-    if (searchResults.isEmpty() && StringUtils.startsWithIgnoreCase(songName, "The ")) {
+    // One-time retry for songs starting with "The " or have umlauts, because sometimes those differ from Spotify's naming
+    if (searchResults.isEmpty()) {
       songName = songName.replaceFirst("The ", "");
+      songName = SetlistUtils.unGermanString(songName);
       searchQuery = buildSearchQuery(songName, queryArtistName, strictSearch);
       searchResults = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems());
     }
