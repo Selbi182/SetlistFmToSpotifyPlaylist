@@ -68,40 +68,30 @@ public class CreationCache {
 
   @Scheduled(initialDelay = 1, fixedDelay = 1, timeUnit = TimeUnit.DAYS)
   public void refreshCreatedSetlistsCounterAndRemoveDeadPlaylists() {
-    List<PlaylistSimplified> allUserPlaylists = playlistService.getCurrentUsersPlaylists();
-
-    int playlistOverflowCount = allUserPlaylists.size() - SPOTIFY_PLAYLIST_LIMIT_TARGET;
+    // Housekeeping:
+    // Thankfully, the results of getCurrentUsersPlaylists are already in chronological order from newest to oldest,
+    // so all we need to do is start at the bottom and delete enough old playlists until we land below the target limit of 10000.
+    int playlistCount = SpotifyCall.execute(spotifyApi.getListOfCurrentUsersPlaylists()).getTotal();
+    int playlistOverflowCount = playlistCount - SPOTIFY_PLAYLIST_LIMIT_TARGET;
     if (playlistOverflowCount > 0) {
-      // Housekeeping:
-      // Thankfully, the results of getCurrentUsersPlaylists are already in chronological order from newest to oldest,
-      // so all we need to do is start at the bottom and delete enough old playlists until we land below the target limit of 10000.
-
-      ListIterator<PlaylistSimplified> iterator = allUserPlaylists.listIterator(allUserPlaylists.size());
-      List<PlaylistSimplified> obsolete = new ArrayList<>();
-      while (iterator.hasPrevious() && playlistOverflowCount > 0) {
-        PlaylistSimplified ps = iterator.previous();
-        obsolete.add(ps);
-        playlistOverflowCount--;
-      }
-
-      if (!obsolete.isEmpty()) {
-        List<Callable<String>> toRemove = obsolete.stream()
+      System.out.println("Deleting " + playlistOverflowCount + " old playlists!");
+      List<PlaylistSimplified> overflownPlaylists = SpotifyCall.executePaging(spotifyApi.getListOfCurrentUsersPlaylists().offset(SPOTIFY_PLAYLIST_LIMIT_TARGET));
+      if (!overflownPlaylists.isEmpty()) {
+        List<Callable<String>> toRemove = overflownPlaylists.stream()
           .map(pl -> (Callable<String>) () -> SpotifyCall.execute(spotifyApi.unfollowPlaylist(pl.getId())))
           .collect(Collectors.toList());
-        System.out.println("Deleting " + toRemove.size() + " old playlists!");
         executorService.executeAndWait(toRemove);
+        System.out.println("Housekeeping done!");
       }
+    }
 
-      // Recursive call to build the creation cache with new data (slow but meh)
-      refreshCreatedSetlistsCounterAndRemoveDeadPlaylists();
-    } else {
-      // Build the creation cache
-      createdSetlists.clear();
-      for (PlaylistSimplified ps : allUserPlaylists) {
-        String name = ps.getName();
-        String id = ps.getId();
-        addSetlistToCache(name, id);
-      }
+    // Build the creation cache
+    List<PlaylistSimplified> allUserPlaylists = playlistService.getCurrentUsersPlaylists();
+    createdSetlists.clear();
+    for (PlaylistSimplified ps : allUserPlaylists) {
+      String name = ps.getName();
+      String id = ps.getId();
+      addSetlistToCache(name, id);
     }
   }
 
