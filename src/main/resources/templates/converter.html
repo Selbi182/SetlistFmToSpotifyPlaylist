@@ -72,9 +72,9 @@
         </div>
         <div title="Search for an image of the artist on Spotify and use that as playlist thumbnail. Do note that this takes quite a bit of time!">
           <input type="checkbox" autocomplete="off" id="attach-image" name="attach-image">
-          <label for="attach-image">Attach Image</label>
+          <label for="attach-image">Image</label>
         </div>
-        <div id="strict-search-wrapper" title="Dictates which search logic should be used internally. If disabled, it's simply the track title and the artist name of each individual song. Otherwise it follows the syntax 'track:NAME artist:NAME'. This prevents accidental additions by unrelated artists, but it struggles with songs that tend to have a lot of special characters. Consider disabling ONLY if you get too many song misses!">
+        <div id="strict-search-wrapper" title="Dictates which search logic should be used internally. If disabled, it's simply the track title and the artist name of each individual song. Otherwise it follows the syntax 'track:NAME artist:NAME'. This prevents accidental additions by unrelated artists, but it tends to struggle with edge cases. Consider disabling ONLY if you get too many song misses!">
           <input type="checkbox" autocomplete="off" id="strict-search" name="strict-search">
           <label for="strict-search">Strict Search</label>
         </div>

@@ -1,7 +1,9 @@
 package spotify.setlist.creator;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -17,10 +19,20 @@ public class CounterManager {
   private final AtomicInteger cachedCount;
   private final DecimalFormat decimalFormat;
 
-  CounterManager() throws IOException {
-    int readCount = Integer.parseInt(Files.readString(Paths.get(COUNTER_FILE_NAME)).trim());
-    this.cachedCount = new AtomicInteger(readCount);
+  CounterManager() {
+    int readCount = 0;
+    try {
+      File file = Paths.get(COUNTER_FILE_NAME).toFile();
+      if (!file.exists() && file.createNewFile()) {
+        System.out.println("Created " + COUNTER_FILE_NAME + " file!");
+      } else {
+        readCount = Integer.parseInt(Files.readString(file.toPath()).trim());
+      }
+    } catch (IOException | NumberFormatException e) {
+      e.printStackTrace();
+    }
 
+    this.cachedCount = new AtomicInteger(readCount);
     this.decimalFormat = new DecimalFormat("#,###", new DecimalFormatSymbols(Locale.US));
   }
 
