@@ -52,6 +52,8 @@ dependencies {
     implementation 'se.michaelthelin.spotify:spotify-web-api-java:8.4.1'
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1' // fixes a version conflict with spotify-web-api-java v8.3.+
 
+    implementation 'org.apache.commons:commons-text:1.10.0'
+
     implementation 'org.jsoup:jsoup:1.18.1'
 
     testImplementation 'junit:junit:4.13.2'

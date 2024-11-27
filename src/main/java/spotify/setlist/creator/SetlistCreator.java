@@ -7,9 +7,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -194,18 +196,14 @@ public class SetlistCreator {
   TrackSearchResult searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
     String queryArtistName = song.isTape() ? song.getOriginalArtistName() : song.getArtistName();
     String songName = song.getSongName();
-    String searchQuery = buildSearchQuery(songName, queryArtistName, strictSearch);
+    String songNameCore = SetlistUtils.extractCoreTitle(songName);
+    String searchQueryStrict = buildSearchQuery(songNameCore, queryArtistName, true);
+    String searchQueryLoose = buildSearchQuery(songName, queryArtistName, false);
 
-    List<Track> searchResults = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems());
+    List<Track> searchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryStrict)).getItems());
+    List<Track> searchResultsLoose = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryLoose)).getItems());
 
-    // One-time retry for songs starting with "The " or have umlauts, because sometimes those differ from Spotify's naming
-    if (searchResults.isEmpty()) {
-      songName = songName.replaceFirst("The ", "");
-      songName = SetlistUtils.unGermanString(songName);
-      searchQuery = buildSearchQuery(songName, queryArtistName, strictSearch);
-      searchResults = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQuery)).getItems());
-    }
-
+    List<Track> searchResults = Stream.concat(searchResultsStrict.stream(), searchResultsLoose.stream()).collect(Collectors.toList());
     if (!searchResults.isEmpty()) {
       TrackSearchResult bestSearchResult = findBestSearchResult(song, strictSearch, songName, searchResults, queryArtistName, false);
       if (bestSearchResult.hasResult()) {
@@ -229,7 +227,7 @@ public class SetlistCreator {
     List<Track> matchingSongs = searchResults.stream()
       .filter(track -> SetlistUtils.isStartContained(queryArtistName, SpotifyUtils.getFirstArtistName(track)))
       .filter(track -> allowAlternateVersions || !SetlistUtils.containsAlternateVersionWord(songName, track.getName()))
-      .filter(track -> SetlistUtils.containsIgnoreCaseNormalized(track.getName(), songName))
+      .filter(track -> isMatchingSongTitle(track.getName(), songName))
       .sorted(Comparator.comparing(t -> t.getAlbum().getReleaseDate()))
       .collect(Collectors.toList());
 
@@ -280,14 +278,31 @@ public class SetlistCreator {
     return TrackSearchResult.notFound(song);
   }
 
+  private boolean isMatchingSongTitle(String spotifySearchResultSongName, String setlistFmSongName) {
+    if (SetlistUtils.containsIgnoreCaseNormalized(spotifySearchResultSongName, setlistFmSongName)) {
+      return true;
+    }
+    return isApproximateMatch(setlistFmSongName, spotifySearchResultSongName);
+  }
+
+  public boolean isApproximateMatch(String query, String title) {
+    int maxDistance = (int) Math.ceil(query.length() * 0.2); // Allow ~20% difference
+    LevenshteinDistance levenshtein = new LevenshteinDistance();
+    String normalizedQuery = SetlistUtils.purifyString(query);
+    String normalizedTitle = SetlistUtils.purifyString(title);
+    int distance = levenshtein.apply(normalizedQuery, normalizedTitle);
+    return distance <= maxDistance;
+  }
+
+
   private String buildSearchQuery(String songName, String artistName, boolean strictSearch) {
+    String artistNamePurified = SetlistUtils.purifyString(artistName).toLowerCase();
+    String songNamePurified = SetlistUtils.purifyString(songName).toLowerCase();
     if (strictSearch) {
       // Replace all special characters with white space cause Spotify struggled with apostrophes and such during strict search
-      String artistNamePurified = SetlistUtils.purifyString(artistName);
-      String songNamePurified = SetlistUtils.purifyString(songName);
-      return String.format("artist:%s track:%s", artistNamePurified, songNamePurified);
+      return String.format("%s artist:%s", songNamePurified, artistNamePurified).replaceAll(" ", "%20");  //.replaceAll(":", "%3A");
     }
-    return artistName + " " + songName;
+    return songNamePurified + " " + artistNamePurified;
   }
 
   /**

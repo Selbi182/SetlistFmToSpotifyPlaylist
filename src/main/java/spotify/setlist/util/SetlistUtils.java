@@ -209,4 +209,15 @@ public class SetlistUtils {
   public static boolean isInAlbum(Track track) {
     return AlbumType.ALBUM.equals(track.getAlbum().getAlbumType());
   }
+
+  // Extract the "core" part of a song title
+  public static String extractCoreTitle(String title) {
+    String[] parts = title.split("[\\:\\.\\-\\(\\)\\[\\]]"); // Split on colon, dash, or parentheses
+    String coreTitle = Arrays.stream(parts)
+      .map(String::trim)                // Remove extra spaces
+      .filter(s -> s.length() > 5)      // Ignore too-short segments
+      .reduce((first, second) -> second) // Take the last meaningful part
+      .orElse(title);
+    return purifyString(coreTitle);                   // Default to the full title if no split parts
+  }
 }
