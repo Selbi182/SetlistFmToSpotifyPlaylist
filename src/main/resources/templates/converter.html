@@ -21,32 +21,27 @@
   <meta property="twitter:url" content="https://setlistfm.selbi.club/" />
   <meta property="twitter:title" content="setlist.fm to Spotify" />
   <meta property="twitter:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
-
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4VY3DTLHVH"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-4VY3DTLHVH');
-  </script>
 </head>
 <body>
   <div id="background"></div>
   <div id="content">
     <header>
+      <div id="bonus-headline" title="Yes, for real.">
+        <span>No Ads</span> • <span>No Sign-Ups</span> • <span>No Tracking</span>
+      </div>
       <div id="headline">
         <a href="https://www.setlist.fm/"><img src="setlistfm-logo.png" alt="setlist.fm"></a>
-        <a href="/"> to </a>
+        <a href="/" class="to"> to </a>
         <a href="https://spotify.com"><img src="spotify-logo.png" alt="Spotify"></a>
       </div>
       <div id="external-links">
         <a href="https://open.spotify.com/user/31daa4vc625d7o3ldksnjnjafwxe" title="All playlists will be made publicly available on this Spotify profile">Spotify Profile</a>
         &bull;
-        <a href="https://github.com/Selbi182/SetlistFmToSpotifyPlaylist" title="For more information, check out the GitHub page">GitHub</a>
+        <a href="https://github.com/Selbi182/SetlistFmToSpotifyPlaylist" title="For more information and the full source code of this project, check out the GitHub page">GitHub</a>
         &bull;
         <a href="https://www.setlist.fm/forum/music/other-music-stuff/setlistfm-to-spotify-playlist-converter-7bd72e68" title="Forum topic on the setlist.fm forums, for direct feedback">Forum</a>
         &bull;
-        <a href="https://greasyfork.org/de/scripts/476640-setlist-fm-to-spotify-playlist-one-click-button" title="A userscript to convert setlists in one click (requires a UserScript browser addon, such as ViolentMonkey)">One&#8209;Click&nbsp;UserScript</a>
+        <a href="https://greasyfork.org/de/scripts/476640-setlist-fm-to-spotify-playlist-one-click-button" title="A UserScript to convert setlists in one click (requires a UserScript browser addon, such as ViolentMonkey)">One&#8209;Click&nbsp;Add-On</a>
       </div>
       <a id="counter" href="https://open.spotify.com/user/31daa4vc625d7o3ldksnjnjafwxe/playlists" th:text="${playlistCount}"></a>
     </header>

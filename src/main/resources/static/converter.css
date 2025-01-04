@@ -66,16 +66,35 @@ header {
     gap: 0.5em;
 }
 
+#bonus-headline {
+    width: 100%;
+    font-size: 100%;
+    opacity: 0.5;
+    color: black;
+    font-weight: normal;
+    font-style: italic;
+    margin-bottom: 0.25em;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: opacity var(--transition);
+}
+
+#bonus-headline:hover {
+    opacity: 1;
+}
+
 #headline {
     display: flex;
     flex-wrap: wrap;
     text-align: center;
     justify-content: center;
     align-items: center;
-    gap: 0 0.5em;
+    gap: 0 1.5em;
     font-weight: bold;
+}
+
+#headline .to {
     font-size: 300%;
-    margin-bottom: 0.25em;
 }
 
 #counter {

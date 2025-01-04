@@ -296,13 +296,13 @@ public class SetlistCreator {
 
 
   private String buildSearchQuery(String songName, String artistName, boolean strictSearch) {
-    String artistNamePurified = SetlistUtils.purifyString(artistName).toLowerCase();
-    String songNamePurified = SetlistUtils.purifyString(songName).toLowerCase();
     if (strictSearch) {
       // Replace all special characters with white space cause Spotify struggled with apostrophes and such during strict search
-      return String.format("%s artist:%s", songNamePurified, artistNamePurified).replaceAll(" ", "%20");  //.replaceAll(":", "%3A");
+      String artistNamePurified = SetlistUtils.purifyString(artistName).toLowerCase();
+      String songNamePurified = SetlistUtils.purifyString(songName).toLowerCase();
+      return String.format(" track:\"%s\" artist:\"%s\"", songNamePurified, artistNamePurified).replaceAll(" ", "%20").replaceAll("\"", "%22");  //.replaceAll(":", "%3A");
     }
-    return songNamePurified + " " + artistNamePurified;
+    return songName + " " + artistName;
   }
 
   /**

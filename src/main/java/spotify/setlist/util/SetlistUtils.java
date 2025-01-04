@@ -111,7 +111,7 @@ public class SetlistUtils {
    * @return the purified string
    */
   public static String purifyString(String input) {
-    return STRING_PURIFICATION_REGEX.matcher(input).replaceAll(" ").replaceAll("\\s+", " ").trim();
+    return unGermanString(STRING_PURIFICATION_REGEX.matcher(input).replaceAll(" ").replaceAll("\\s+", " ")).trim();
   }
 
   /**
