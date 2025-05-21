@@ -39,6 +39,7 @@ import spotify.util.SpotifyOptimizedExecutorService;
   UserService.class,
   SetlistCreator.class,
   CreationCache.class,
+  CounterManager.class,
   SetlistFmToSpotifyPlaylist.SetlistFmBotSpotifySettings.class
 })
 @EnableConfigurationProperties

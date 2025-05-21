@@ -112,7 +112,7 @@ public class SetlistCreator {
     long searchResultCount = spotifySearchResults.stream()
       .filter(TrackSearchResult::hasResult)
       .count();
-    if (spotifySearchResults.isEmpty() || searchResultCount < totalSetlistSongsCount / 2) {
+    if (spotifySearchResults.isEmpty() || searchResultCount < totalSetlistSongsCount / 3) {
       sendMessage(session, "Operation failed.");
       throw new NotFoundException("No songs found");
     }
@@ -202,24 +202,49 @@ public class SetlistCreator {
 
     List<Track> searchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryStrict)).getItems());
     List<Track> searchResultsLoose = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryLoose)).getItems());
-
     List<Track> searchResults = Stream.concat(searchResultsStrict.stream(), searchResultsLoose.stream()).collect(Collectors.toList());
+
+    // Direct song match of artist
     if (!searchResults.isEmpty()) {
       TrackSearchResult bestSearchResult = findBestSearchResult(song, strictSearch, songName, searchResults, queryArtistName, false);
       if (bestSearchResult.hasResult()) {
         return bestSearchResult;
       } else {
-        return findBestSearchResult(song, strictSearch, songName, searchResults, queryArtistName, true);
-      }
-    } else if (song.isCover() && includeCoverOriginals) {
-      String fallbackCoverSearchQuery = buildSearchQuery(songName, song.getOriginalArtistName(), strictSearch);
-      Track[] fallbackCoverSearchResults = SpotifyCall.execute(spotifyApi.searchTracks(fallbackCoverSearchQuery).limit(4)).getItems();
-      if (fallbackCoverSearchResults.length > 0) {
-        Arrays.sort(fallbackCoverSearchResults, Comparator.comparingInt(Track::getPopularity));
-        Track coverOriginal = fallbackCoverSearchResults[fallbackCoverSearchResults.length - 1];
-        return TrackSearchResult.coverOriginal(song, coverOriginal);
+        TrackSearchResult fallback = findBestSearchResult(song, strictSearch, songName, searchResults, queryArtistName, true);
+        if (fallback.hasResult()) {
+          return fallback;
+        }
       }
     }
+
+    // Cover originals
+    if (song.isCover() && includeCoverOriginals) {
+      String originalArtistName = song.getOriginalArtistName();
+      String fallbackCoverSearchQueryStrict = buildSearchQuery(songName, originalArtistName, true);
+      String fallbackCoverSearchQueryLoose = buildSearchQuery(songName, originalArtistName, false);
+      List<Track> fallbackCoverSearchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(fallbackCoverSearchQueryStrict)).getItems());
+      List<Track> fallbackCoverSearchResultsLoose = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(fallbackCoverSearchQueryLoose)).getItems());
+
+      List<Track> fallbackCoverSearchResults = Stream.concat(fallbackCoverSearchResultsStrict.stream(), fallbackCoverSearchResultsLoose.stream()).collect(Collectors.toList());
+
+      if (!searchResults.isEmpty()) {
+        TrackSearchResult coverOriginal = TrackSearchResult.notFound(song);
+        TrackSearchResult bestSearchResult = findBestSearchResult(song, strictSearch, songName, fallbackCoverSearchResults, originalArtistName, false);
+        if (bestSearchResult.hasResult()) {
+          coverOriginal = bestSearchResult;
+        } else {
+          TrackSearchResult fallback = findBestSearchResult(song, strictSearch, songName, fallbackCoverSearchResults, originalArtistName, true);
+          if (fallback.hasResult()) {
+            coverOriginal = fallback;
+          }
+        }
+
+        if (coverOriginal.hasResult()) {
+          return TrackSearchResult.coverOriginal(song, coverOriginal.getSearchResult());
+        }
+      }
+    }
+
     return TrackSearchResult.notFound(song);
   }
 
