@@ -4,11 +4,13 @@
   <title>setlist.fm to Spotify</title>
 
   <script th:src="@{'/converter.js?' + ${bootTime}}" type="module"></script>
+  <script th:src="@{'/text.js?' + ${bootTime}}" type="module"></script>
+
   <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
   <script type='text/javascript' src="https://storage.ko-fi.com/cdn/widget/Widget_2.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <link rel="stylesheet" th:href="@{'/converter.css?' + ${bootTime}}"/>
+  <link rel="stylesheet" th:href="@{'/style/converter.css?' + ${bootTime}}"/>
 
-  <link rel="icon" href="favicon.png" type="image/x-icon">
+  <link rel="icon" href="/img/favicon.png" type="image/x-icon">
 
   <meta charset="utf-8">
   <meta name="title" content="setlist.fm to Spotify" />
@@ -30,9 +32,9 @@
         <span>No Ads</span> • <span>No Sign-Ups</span> • <span>No Tracking</span>
       </div>
       <div id="headline">
-        <a href="https://www.setlist.fm/"><img src="setlistfm-logo.png" alt="setlist.fm"></a>
+        <a href="https://www.setlist.fm/"><img src="/img/setlistfm-logo.png" alt="setlist.fm"></a>
         <a href="/" class="to"> to </a>
-        <a href="https://spotify.com"><img src="spotify-logo.png" alt="Spotify"></a>
+        <a href="https://spotify.com"><img src="/img/spotify-logo.png" alt="Spotify"></a>
       </div>
       <div id="external-links">
         <a href="https://open.spotify.com/user/31daa4vc625d7o3ldksnjnjafwxe" title="All playlists will be made publicly available on this Spotify profile">Spotify Profile</a>

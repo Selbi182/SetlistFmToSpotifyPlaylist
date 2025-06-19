@@ -1,12 +1,9 @@
 package spotify.setlist.creator;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +22,7 @@ import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
 import spotify.services.PlaylistService;
 import spotify.setlist.data.TrackSearchResult;
-import spotify.util.SpotifyOptimizedExecutorService;
+import spotify.util.SpotifyLogger;
 
 @EnableScheduling
 @Component
@@ -41,12 +38,9 @@ public class CreationCache {
    */
   public static final int SPOTIFY_PLAYLIST_LIMIT_TARGET = SPOTIFY_PLAYLIST_LIMIT_REAL - 1000;
 
-
   private final SpotifyApi spotifyApi;
-  private final CounterManager counterManager;
   private final PlaylistService playlistService;
-  private final SpotifyOptimizedExecutorService executorService;
-
+  private final SpotifyLogger logger;
 
   /**
    * Maps setlist names to lists of playlist IDs
@@ -55,13 +49,11 @@ public class CreationCache {
   private final Map<String, List<String>> createdSetlists;
 
   CreationCache (SpotifyApi spotifyApi,
-      CounterManager counterManager,
-      PlaylistService playlistService,
-      SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
+    PlaylistService playlistService,
+    SpotifyLogger logger) {
     this.spotifyApi = spotifyApi;
-    this.counterManager = counterManager;
     this.playlistService = playlistService;
-    this.executorService = spotifyOptimizedExecutorService;
+    this.logger = logger;
 
     this.createdSetlists = new ConcurrentHashMap<>();
   }
@@ -74,18 +66,20 @@ public class CreationCache {
     int playlistCount = SpotifyCall.execute(spotifyApi.getListOfCurrentUsersPlaylists()).getTotal();
     int playlistOverflowCount = playlistCount - SPOTIFY_PLAYLIST_LIMIT_TARGET;
     if (playlistOverflowCount > 0) {
-      System.out.println("Deleting " + playlistOverflowCount + " old playlists!");
+      logger.warning("Deleting " + playlistOverflowCount + " old playlists!");
       List<PlaylistSimplified> overflownPlaylists = SpotifyCall.executePaging(spotifyApi.getListOfCurrentUsersPlaylists().offset(SPOTIFY_PLAYLIST_LIMIT_TARGET));
       if (!overflownPlaylists.isEmpty()) {
-        List<Callable<String>> toRemove = overflownPlaylists.stream()
-          .map(pl -> (Callable<String>) () -> SpotifyCall.execute(spotifyApi.unfollowPlaylist(pl.getId())))
-          .collect(Collectors.toList());
-        executorService.executeAndWait(toRemove);
-        System.out.println("Housekeeping done!");
+        // This part used to be done with the SpotifyOptimizedExecutorService, but for some reason it would lead to a bunch of
+        // "Forbidden" and "Insufficient client scope" exceptions. My guess is that Spotify doesn't like it when too many playlists
+        // are unfollowed at once, so I had to simplify it into a foreach loop. That seemed to have resolved the issue.
+        for (PlaylistSimplified pl : overflownPlaylists) {
+          SpotifyCall.execute(spotifyApi.unfollowPlaylist(pl.getId()));
+        }
+        logger.warning("Housekeeping done!");
       }
     }
 
-    // Build the creation cache
+    // Build the creation cache (be warned: at 10000 playlists, this takes an INSANE amount of time!)
     List<PlaylistSimplified> allUserPlaylists = playlistService.getCurrentUsersPlaylists();
     createdSetlists.clear();
     for (PlaylistSimplified ps : allUserPlaylists) {

@@ -1,12 +1,12 @@
 package spotify.setlist.util;
 
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.util.StringUtils;
@@ -21,6 +21,7 @@ public class SetlistUtils {
   private static final int MAX_PLAYLIST_NAME_LENGTH = 100;
   private static final Pattern STRING_PURIFICATION_REGEX = Pattern.compile("[^\\p{L}\\p{N}]");
   private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+  private static final Pattern SETLIST_FM_URL_ID_PATTERN = Pattern.compile(".*-(\\w+)\\.html$");
 
   private static final List<String> ALTERNATE_VERSION_WORDS = List.of(
     "instrumental",
@@ -40,11 +41,11 @@ public class SetlistUtils {
    * @throws MalformedURLException on a bad URL
    */
   public static String getIdFromSetlistFmUrl(String url) throws MalformedURLException {
-    URL asUrl = new URL(url);
-    String path = asUrl.getPath();
-    String[] segments = path.split("-");
-    String lastSegment = segments[segments.length - 1];
-    return lastSegment.split("\\.")[0];
+    Matcher matcher = SETLIST_FM_URL_ID_PATTERN.matcher(url);
+    if (matcher.find()) {
+      return matcher.group(1);
+    }
+    throw new MalformedURLException("Couldn't parse setlist ID from URL");
   }
 
   /**

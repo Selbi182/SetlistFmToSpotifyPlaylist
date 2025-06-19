@@ -9,9 +9,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -24,6 +23,7 @@ import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
+import spotify.api.events.SpotifyApiLoggedInEvent;
 import spotify.services.PlaylistService;
 import spotify.setlist.data.Setlist;
 import spotify.setlist.data.SetlistCreationOptions;
@@ -68,7 +68,7 @@ public class SetlistCreator {
     this.port = springPortConfig.getPort();
   }
 
-  @PostConstruct
+  @EventListener(SpotifyApiLoggedInEvent.class)
   void init() {
     String setlistFmApiToken = environment.getProperty(SETLIST_FM_API_TOKEN_ENV);
     if (setlistFmApiToken == null || setlistFmApiToken.isBlank()) {
@@ -112,7 +112,7 @@ public class SetlistCreator {
     long searchResultCount = spotifySearchResults.stream()
       .filter(TrackSearchResult::hasResult)
       .count();
-    if (spotifySearchResults.isEmpty() || searchResultCount < totalSetlistSongsCount / 3) {
+    if (spotifySearchResults.isEmpty() || searchResultCount == 0 || searchResultCount < totalSetlistSongsCount / 3) {
       sendMessage(session, "Operation failed.");
       throw new NotFoundException("No songs found");
     }

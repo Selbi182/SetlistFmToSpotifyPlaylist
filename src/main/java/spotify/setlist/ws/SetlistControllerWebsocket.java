@@ -1,8 +1,6 @@
-package spotify.setlist;
+package spotify.setlist.ws;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import org.springframework.stereotype.Component;
