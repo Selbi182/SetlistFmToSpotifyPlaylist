@@ -114,7 +114,7 @@ public class SetlistCreator {
       .count();
     if (spotifySearchResults.isEmpty() || searchResultCount == 0 || searchResultCount < totalSetlistSongsCount / 3) {
       sendMessage(session, "Operation failed.");
-      throw new NotFoundException("No songs found");
+      throw new NotFoundException("No songs found: " + setlistFmId);
     }
 
     // Now purge all missed songs, so we can add the actual results

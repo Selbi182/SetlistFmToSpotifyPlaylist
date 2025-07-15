@@ -266,7 +266,7 @@ function saveSettingsToStore() {
 /////////////////////////////
 // Utility Functions & Misc
 
-const validSetlistUrlRegex = /^(https?:\/\/)?(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+\.html$/i;
+const validSetlistUrlRegex = /^(https?:\/\/)?(www\.)?setlist\.fm\/setlist\/[\w+\-]+\/\d+\/[\w+\-]+?-[a-z0-9]{7,9}\.html$/i;
 function isValidSetlistUrl(url) {
   return validSetlistUrlRegex.test(url);
 }

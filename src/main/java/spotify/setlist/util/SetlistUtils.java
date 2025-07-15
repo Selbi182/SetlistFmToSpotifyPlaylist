@@ -21,7 +21,7 @@ public class SetlistUtils {
   private static final int MAX_PLAYLIST_NAME_LENGTH = 100;
   private static final Pattern STRING_PURIFICATION_REGEX = Pattern.compile("[^\\p{L}\\p{N}]");
   private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-  private static final Pattern SETLIST_FM_URL_ID_PATTERN = Pattern.compile(".*-(\\w+)\\.html$");
+  private static final Pattern SETLIST_FM_URL_ID_PATTERN = Pattern.compile(".*-([a-z0-9]{7,9})\\.html$");
 
   private static final List<String> ALTERNATE_VERSION_WORDS = List.of(
     "instrumental",
@@ -45,7 +45,7 @@ public class SetlistUtils {
     if (matcher.find()) {
       return matcher.group(1);
     }
-    throw new MalformedURLException("Couldn't parse setlist ID from URL");
+    throw new MalformedURLException("Couldn't parse setlist ID from URL: " + url);
   }
 
   /**

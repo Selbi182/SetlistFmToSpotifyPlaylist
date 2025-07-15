@@ -43,7 +43,7 @@ public class SetlistFmApi {
       List<Setlist.Song> setlistSongs = new ArrayList<>();
       JsonArray asJsonArray = json.get("sets").getAsJsonObject().get("set").getAsJsonArray();
       if (asJsonArray.isEmpty()) {
-        throw new IllegalStateException("Setlist mustn't be empty");
+        throw new IllegalStateException("Setlist mustn't be empty: " + url);
       }
 
       int index = 0;
@@ -76,7 +76,7 @@ public class SetlistFmApi {
 
       return new Setlist(artistName, eventDate, city, venue, tourName, setlistSongs);
     } catch (Exception e) {
-      throw new NotFoundException("Setlist isn't valid");
+      throw new NotFoundException("Setlist isn't valid: " + setlistFmId);
     }
   }
 }
