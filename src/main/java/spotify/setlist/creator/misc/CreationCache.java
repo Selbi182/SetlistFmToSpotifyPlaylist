@@ -1,4 +1,4 @@
-package spotify.setlist.creator;
+package spotify.setlist.creator.misc;
 
 import java.util.Arrays;
 import java.util.List;
@@ -73,7 +73,7 @@ public class CreationCache {
         // "Forbidden" and "Insufficient client scope" exceptions. My guess is that Spotify doesn't like it when too many playlists
         // are unfollowed at once, so I had to simplify it into a foreach loop. That seemed to have resolved the issue.
         for (PlaylistSimplified pl : overflownPlaylists) {
-          SpotifyCall.execute(spotifyApi.unfollowPlaylist(pl.getId()));
+          playlistService.deletePlaylist(pl);
         }
         logger.warning("Housekeeping done!");
       }
@@ -89,7 +89,7 @@ public class CreationCache {
     }
   }
 
-  protected Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<TrackSearchResult> setlistTracks) {
+  public Optional<Playlist> searchForExistingSetlistPlaylist(String setlistName, List<TrackSearchResult> setlistTracks) {
     List<String> playlistIdsForSetlistName = createdSetlists.get(setlistName);
     if (playlistIdsForSetlistName == null || playlistIdsForSetlistName.isEmpty()) {
       // This is the first time the playlist has been fetched
@@ -117,7 +117,7 @@ public class CreationCache {
     return Optional.empty();
   }
 
-  protected void addSetlistToCache(String name, String id) {
+  public void addSetlistToCache(String name, String id) {
     if (!createdSetlists.containsKey(name)) {
       createdSetlists.put(name, new CopyOnWriteArrayList<>());
     }

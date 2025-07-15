@@ -1,21 +1,11 @@
 package spotify.setlist.creator;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
-
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
@@ -23,8 +13,11 @@ import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
+import spotify.api.events.SpotifyApiException;
 import spotify.api.events.SpotifyApiLoggedInEvent;
 import spotify.services.PlaylistService;
+import spotify.setlist.creator.misc.CounterManager;
+import spotify.setlist.creator.misc.CreationCache;
 import spotify.setlist.data.Setlist;
 import spotify.setlist.data.SetlistCreationOptions;
 import spotify.setlist.data.SetlistCreationResponse;
@@ -35,12 +28,19 @@ import spotify.spring.SpringPortConfig;
 import spotify.util.SpotifyLogger;
 import spotify.util.SpotifyUtils;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 @Component
 public class SetlistCreator {
   public static boolean debugMode = false;
 
   private static final String SETLIST_FM_API_TOKEN_ENV = "setlist_bot.setlist_fm_api_token";
   private static final String SETLIST_FM_DEBUG_ENV = "setlist_bot.debug_mode";
+
+  private static final int PLAYLIST_ADD_MAX_ATTEMPTS = 10;
 
   private final CreationCache creationCache;
   private final CounterManager counterManager;
@@ -140,7 +140,13 @@ public class SetlistCreator {
     Playlist targetPlaylist = playlistService.createPlaylist(setlistName, description, true);
     sendMessage(session, "Adding tracks to playlist...");
     List<Track> tracksToAdd = spotifySearchResultsFiltered.stream().map(TrackSearchResult::getSearchResult).collect(Collectors.toList());
-    playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
+
+    if (!addTracksWithRetry(targetPlaylist, tracksToAdd)) {
+      // Failed to add tracks for whatever reason, delete playlist again and return an error
+      playlistService.deletePlaylist(targetPlaylist);
+      sendMessage(session, "Failed to add tracks to playlist.");
+      throw new NotFoundException("Failed to add tracks to playlist: " + targetPlaylist.getName());
+    }
 
     // Attach image
     if (options.isAttachImage() && !debugMode) {
@@ -168,6 +174,25 @@ public class SetlistCreator {
       creationCache.addSetlistToCache(setlistName, targetPlaylist.getId());
     }
     return setlistCreationResponse;
+  }
+
+  private boolean addTracksWithRetry(Playlist targetPlaylist, List<Track> tracksToAdd) {
+    // Recently, the bot randomly received "Insufficient client scope" exceptions for seemingly no reason.
+    // The scope is there and most of the time it works fine, but sometimes it just goes "lol screw you" and fails.
+    // This should hopefully mitigate some of these issues, without getting stuck indefinitely.
+    for (int i = PLAYLIST_ADD_MAX_ATTEMPTS; i > 0; i--) {
+      try {
+        playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
+        if (i < PLAYLIST_ADD_MAX_ATTEMPTS) {
+          logger.warning("Had to retry adding tracks to playlist " + (PLAYLIST_ADD_MAX_ATTEMPTS - i) + " times "
+          + "for playlist: " + targetPlaylist.getName());
+        }
+        return true;
+      } catch (SpotifyApiException e) {
+        SpotifyUtils.sneakySleep(1000);
+      }
+    }
+    return false;
   }
 
   private List<TrackSearchResult> findSongsOnSpotify(Setlist setlist, SetlistCreationOptions options, WebSocketSession session) {

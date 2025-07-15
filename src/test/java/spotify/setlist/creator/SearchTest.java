@@ -21,6 +21,8 @@ import spotify.api.events.SpotifyApiException;
 import spotify.config.SpotifyApiConfig;
 import spotify.services.PlaylistService;
 import spotify.services.UserService;
+import spotify.setlist.creator.misc.CounterManager;
+import spotify.setlist.creator.misc.CreationCache;
 import spotify.setlist.data.Setlist;
 import spotify.setlist.data.TrackSearchResult;
 import spotify.setlist.util.SetlistUtils;

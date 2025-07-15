@@ -1,4 +1,4 @@
-package spotify.setlist.creator;
+package spotify.setlist.creator.misc;
 
 import java.io.File;
 import java.io.IOException;

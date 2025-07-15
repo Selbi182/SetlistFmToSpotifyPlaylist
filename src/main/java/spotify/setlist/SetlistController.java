@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
-import spotify.setlist.creator.CounterManager;
+import spotify.setlist.creator.misc.CounterManager;
 
 @RestController
 public class SetlistController {
