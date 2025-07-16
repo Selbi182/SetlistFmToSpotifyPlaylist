@@ -208,7 +208,7 @@ public class SetlistCreator {
         || song.isTape() && (song.isCover() ? options.isIncludeTapesForeign() : options.isIncludeTapesMain())
         || song.isMedleyPart() && options.isIncludeMedleys();
       if (notSkipped) {
-        TrackSearchResult trackSearchResult = searchTrack(song, options.isIncludeCoverOriginals(), options.isStrictSearch());
+        TrackSearchResult trackSearchResult = searchTrack(song, options.isIncludeCoverOriginals());
         trackSearchResults.add(trackSearchResult);
       } else {
         trackSearchResults.add(TrackSearchResult.skipped(song));
@@ -218,12 +218,12 @@ public class SetlistCreator {
   }
 
   // visible for testing
-  TrackSearchResult searchTrack(Setlist.Song song, boolean includeCoverOriginals, boolean strictSearch) {
+  TrackSearchResult searchTrack(Setlist.Song song, boolean includeCoverOriginals) {
     String queryArtistName = song.isTape() ? song.getOriginalArtistName() : song.getArtistName();
     String songName = song.getSongName();
     String songNameCore = SetlistUtils.extractCoreTitle(songName);
     String searchQueryStrict = buildSearchQuery(songNameCore, queryArtistName, true);
-    String searchQueryLoose = buildSearchQuery(songName, queryArtistName, false);
+    String searchQueryLoose = buildSearchQuery(songNameCore, queryArtistName, false);
 
     List<Track> searchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryStrict)).getItems());
     List<Track> searchResultsLoose = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryLoose)).getItems());
@@ -231,11 +231,11 @@ public class SetlistCreator {
 
     // Direct song match of artist
     if (!searchResults.isEmpty()) {
-      TrackSearchResult bestSearchResult = findBestSearchResult(song, strictSearch, songName, searchResults, queryArtistName, false);
+      TrackSearchResult bestSearchResult = findBestSearchResult(song, songName, searchResults, queryArtistName, false);
       if (bestSearchResult.hasResult()) {
         return bestSearchResult;
       } else {
-        TrackSearchResult fallback = findBestSearchResult(song, strictSearch, songName, searchResults, queryArtistName, true);
+        TrackSearchResult fallback = findBestSearchResult(song, songName, searchResults, queryArtistName, true);
         if (fallback.hasResult()) {
           return fallback;
         }
@@ -254,11 +254,11 @@ public class SetlistCreator {
 
       if (!searchResults.isEmpty()) {
         TrackSearchResult coverOriginal = TrackSearchResult.notFound(song);
-        TrackSearchResult bestSearchResult = findBestSearchResult(song, strictSearch, songName, fallbackCoverSearchResults, originalArtistName, false);
+        TrackSearchResult bestSearchResult = findBestSearchResult(song, songName, fallbackCoverSearchResults, originalArtistName, false);
         if (bestSearchResult.hasResult()) {
           coverOriginal = bestSearchResult;
         } else {
-          TrackSearchResult fallback = findBestSearchResult(song, strictSearch, songName, fallbackCoverSearchResults, originalArtistName, true);
+          TrackSearchResult fallback = findBestSearchResult(song, songName, fallbackCoverSearchResults, originalArtistName, true);
           if (fallback.hasResult()) {
             coverOriginal = fallback;
           }
@@ -273,7 +273,7 @@ public class SetlistCreator {
     return TrackSearchResult.notFound(song);
   }
 
-  private TrackSearchResult findBestSearchResult(Setlist.Song song, boolean strictSearch, String songName, List<Track> searchResults, String queryArtistName, boolean allowAlternateVersions) {
+  private TrackSearchResult findBestSearchResult(Setlist.Song song, String songName, List<Track> searchResults, String queryArtistName, boolean allowAlternateVersions) {
     List<Track> matchingSongs = searchResults.stream()
       .filter(track -> SetlistUtils.isStartContained(queryArtistName, SpotifyUtils.getFirstArtistName(track)))
       .filter(track -> allowAlternateVersions || !SetlistUtils.containsAlternateVersionWord(songName, track.getName()))
@@ -315,12 +315,10 @@ public class SetlistCreator {
       }
     }
 
-    // Contains match (requires strict search to be off)
-    if (!strictSearch) {
-      for (Track track : matchingSongs) {
-        if (SetlistUtils.containsIgnoreCase(track.getName(), songName)) {
-          return TrackSearchResult.closeMatch(song, track);
-        }
+    // Contains match (very last attempt)
+    for (Track track : matchingSongs) {
+      if (SetlistUtils.containsIgnoreCase(track.getName(), SetlistUtils.extractCoreTitle(songName))) {
+        return TrackSearchResult.closeMatch(song, track);
       }
     }
 

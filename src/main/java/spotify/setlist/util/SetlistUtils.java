@@ -61,8 +61,7 @@ public class SetlistUtils {
     boolean includeCoverOriginals = splitOptions.contains("covers");
     boolean includeMedleys = splitOptions.contains("medleys");
     boolean attachImage = splitOptions.contains("attach-image");
-    boolean strictSearch = splitOptions.contains("strict-search");
-    return new SetlistCreationOptions(includeTapesMain, includeTapesForeign, includeCoverOriginals, includeMedleys, attachImage, strictSearch);
+    return new SetlistCreationOptions(includeTapesMain, includeTapesForeign, includeCoverOriginals, includeMedleys, attachImage);
   }
 
   /**
@@ -211,7 +210,12 @@ public class SetlistUtils {
     return AlbumType.ALBUM.equals(track.getAlbum().getAlbumType());
   }
 
-  // Extract the "core" part of a song title
+  /**
+   * Extract the "core" part of a song title, as best as possible
+   *
+   * @param title the raw input title
+   * @return the extracted core part
+   */
   public static String extractCoreTitle(String title) {
     String[] parts = title.split("[\\:\\.\\-\\(\\)\\[\\]]"); // Split on colon, dash, or parentheses
     String coreTitle = Arrays.stream(parts)

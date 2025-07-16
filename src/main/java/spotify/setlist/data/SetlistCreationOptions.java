@@ -6,15 +6,13 @@ public class SetlistCreationOptions {
   private final boolean includeCoverOriginals;
   private final boolean includeMedleys;
   private final boolean attachImage;
-  private final boolean strictSearch;
 
-  public SetlistCreationOptions(boolean includeTapesMain, boolean includeTapesForeign, boolean includeCoverOriginals, boolean includeMedleys, boolean attachImage, boolean strictSearch) {
+  public SetlistCreationOptions(boolean includeTapesMain, boolean includeTapesForeign, boolean includeCoverOriginals, boolean includeMedleys, boolean attachImage) {
     this.includeTapesMain = includeTapesMain;
     this.includeTapesForeign = includeTapesForeign;
     this.includeCoverOriginals = includeCoverOriginals;
     this.includeMedleys = includeMedleys;
     this.attachImage = attachImage;
-    this.strictSearch = strictSearch;
   }
 
   public boolean isIncludeTapesMain() {
@@ -35,9 +33,5 @@ public class SetlistCreationOptions {
 
   public boolean isAttachImage() {
     return attachImage;
-  }
-
-  public boolean isStrictSearch() {
-    return strictSearch;
   }
 }

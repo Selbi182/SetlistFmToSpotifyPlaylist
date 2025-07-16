@@ -75,7 +75,7 @@ public class SearchTest {
 
   private Track searchTrack(String artist, String title) {
     Setlist.Song song = new Setlist.Song(1, title, artist, artist, null, true, true, true);
-    TrackSearchResult trackSearchResult = setlistCreator.searchTrack(song, true, true);
+    TrackSearchResult trackSearchResult = setlistCreator.searchTrack(song, true);
     return trackSearchResult.getSearchResult();
   }
 
