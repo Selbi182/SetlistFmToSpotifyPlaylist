@@ -45,6 +45,7 @@ public class SetlistControllerWebsocket implements WebSocketConfigurer {
 
       session.sendMessage(new TextMessage("Queued..."));
       semaphore.acquire();
+      // TODO: block and wait here while housekeeping is ongoing
 
       SetlistCreationResponse setlistCreationResponse1 = setlistCreator.convertSetlistToPlaylist(setlistFmId, options, session);
 

@@ -20,6 +20,7 @@ import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.api.SpotifyCall;
+import spotify.api.events.SpotifyApiException;
 import spotify.services.PlaylistService;
 import spotify.setlist.data.TrackSearchResult;
 import spotify.util.SpotifyLogger;
@@ -73,7 +74,12 @@ public class CreationCache {
         // "Forbidden" and "Insufficient client scope" exceptions. My guess is that Spotify doesn't like it when too many playlists
         // are unfollowed at once, so I had to simplify it into a foreach loop. That seemed to have resolved the issue.
         for (PlaylistSimplified pl : overflownPlaylists) {
-          playlistService.deletePlaylist(pl);
+          try {
+            playlistService.deletePlaylist(pl);
+          } catch (SpotifyApiException e) {
+            logger.error("Failed to unfollow playlist during housekeeping: " + pl.getName());
+            e.printStackTrace();
+          }
         }
         logger.warning("Housekeeping done!");
       }
