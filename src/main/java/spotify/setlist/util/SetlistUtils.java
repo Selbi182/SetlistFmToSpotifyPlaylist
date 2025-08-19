@@ -106,18 +106,55 @@ public class SetlistUtils {
   }
 
   /**
-   * Replaces any and all special characters in the given string with spaces.
+   * Normalizes the input string (i.e. song title) by:
+   * - replacing disallowed characters with spaces
+   * - converting accented or special letters (e.g. ä → ae, œ → oe, ß → ss, ø → o)
+   * - stripping remaining diacritics
+   * - collapsing repeated whitespace and trimming
+   * - converting to all-lowercase
    *
-   * @param input the input string
-   * @return the purified string
+   * @param input the raw song title
+   * @return a purified, ASCII-friendly title string
    */
-	public static String purifyString(String input) {
+  public static String purifyString(String input) {
+    String normalizedSpecialLetters = normalizeSpecialLetters(input);
+    String basePurified = STRING_PURIFICATION_REGEX.matcher(normalizedSpecialLetters).replaceAll(" ");
+    return Normalizer.normalize(basePurified, Normalizer.Form.NFKD)
+      .replaceAll("\\p{M}", "")
+      .replaceAll("\\s+", " ")
+      .toLowerCase()
+      .trim();
+  }
 
-		String step1 = unGermanString(STRING_PURIFICATION_REGEX.matcher(input).replaceAll(" ").replaceAll("\\s+", " "))
-				.trim();
+  /**
+   * Converts locale-specific or special letters into plain Latin approximations.
+   * (German umlauts, ß, French/Latin ligatures, Turkish dotted/dotless I, etc.)
+   *
+   * @param input base string
+   * @return normalized string with substitutions applied
+   */
+  public static String normalizeSpecialLetters(String input) {
+    return input
+      // German
+      .replace("ä", "ae").replace("Ä", "Ae")
+      .replace("ö", "oe").replace("Ö", "Oe")
+      .replace("ü", "ue").replace("Ü", "Ue")
+      .replace("ß", "ss")
 
-		return Normalizer.normalize(step1, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
-	}
+      // French & Latin ligatures
+      .replace("œ", "oe").replace("Œ", "OE")
+      .replace("æ", "ae").replace("Æ", "AE")
+
+      // Turkish dotted/dotless I
+      .replace("ı", "i").replace("İ", "I")
+
+      // Nordic/Eastern European specials
+      .replace("ø", "o").replace("Ø", "O")
+      .replace("å", "a").replace("Å", "A")
+      .replace("ł", "l").replace("Ł", "L")
+      .replace("đ", "d").replace("Đ", "D")
+      .replace("þ", "th").replace("Þ", "Th");
+  }
 
   /**
    * Returns true if the containedString is part of the baseString. Case is ignored.
@@ -132,21 +169,7 @@ public class SetlistUtils {
     if (baseLower.contains(containedLower)) {
       return true;
     }
-    return unGermanString(baseLower).contains(unGermanString(containedLower));
-  }
-
-  /**
-   * Converts German umlauts into the substitute variants.
-   *
-   * @param input base string
-   * @return the un-German-ed string
-   */
-  public static String unGermanString(String input) {
-    return input.toLowerCase()
-      .replaceAll("ä", "ae")
-      .replaceAll("ö", "oe")
-      .replaceAll("ü", "ue")
-      .replaceAll("ß", "ss");
+    return purifyString(baseLower).contains(purifyString(containedLower));
   }
 
   /**
