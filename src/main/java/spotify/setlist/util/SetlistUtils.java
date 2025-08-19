@@ -1,6 +1,7 @@
 package spotify.setlist.util;
 
 import java.net.MalformedURLException;
+import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.time.ZoneId;
 import java.util.Arrays;
@@ -110,9 +111,13 @@ public class SetlistUtils {
    * @param input the input string
    * @return the purified string
    */
-  public static String purifyString(String input) {
-    return unGermanString(STRING_PURIFICATION_REGEX.matcher(input).replaceAll(" ").replaceAll("\\s+", " ")).trim();
-  }
+	public static String purifyString(String input) {
+
+		String step1 = unGermanString(STRING_PURIFICATION_REGEX.matcher(input).replaceAll(" ").replaceAll("\\s+", " "))
+				.trim();
+
+		return Normalizer.normalize(step1, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+	}
 
   /**
    * Returns true if the containedString is part of the baseString. Case is ignored.
