@@ -184,7 +184,7 @@ public class SetlistCreator {
       try {
         playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
         if (i < PLAYLIST_ADD_MAX_ATTEMPTS) {
-          logger.warning("Had to retry adding tracks to playlist " + (PLAYLIST_ADD_MAX_ATTEMPTS - i) + " times "
+          logger.warning("Had to retry adding tracks to playlist " + (PLAYLIST_ADD_MAX_ATTEMPTS - i) + " time(s) "
           + "for playlist: " + targetPlaylist.getName());
         }
         return true;

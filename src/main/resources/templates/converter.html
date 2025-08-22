@@ -1,35 +1,41 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en-us">
 <head>
+  <meta charset="utf-8">
   <title>setlist.fm to Spotify</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
   <script th:src="@{'/converter.js?' + ${bootTime}}" type="module"></script>
   <script th:src="@{'/text.js'}" type="module"></script>
 
   <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
   <script type='text/javascript' src="https://storage.ko-fi.com/cdn/widget/Widget_2.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <link rel="stylesheet" th:href="@{'/style/converter.css?' + ${bootTime}}"/>
+  <link rel="stylesheet" th:href="@{'/style/converter.css?' + ${bootTime}}">
 
-  <link rel="icon" href="/img/favicon.png" type="image/x-icon">
-
-  <meta charset="utf-8">
-  <meta name="title" content="setlist.fm to Spotify" />
-  <meta name="description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://setlistfm.selbi.club/" />
-  <meta property="og:title" content="setlist.fm to Spotify" />
-  <meta property="og:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
-  <meta property="twitter:url" content="https://setlistfm.selbi.club/" />
-  <meta property="twitter:title" content="setlist.fm to Spotify" />
-  <meta property="twitter:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!" />
+  <link rel="canonical" href="https://setlistfm.selbi.club">
+  <link rel="icon" href="/img/favicon.png" type="image/png">
+  <meta name="title" content="setlist.fm to Spotify">
+  <meta name="description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!">
+  <meta name="author" content="Selbi">
+  <meta name="theme-color" content="#86B146">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="setlist.fm to Spotify">
+  <meta property="og:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!">
+  <meta property="og:url" content="https://setlistfm.selbi.club">
+  <meta property="og:image" content="https://setlistfm.selbi.club/img/preview.png">
+  <meta property="og:image:alt" content="setlist.fm to Spotify playlist converter">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="setlist.fm to Spotify">
+  <meta name="twitter:description" content="Convert any setlist from setlist.fm into a Spotify playlist within seconds!">
+  <meta name="twitter:url" content="https://setlistfm.selbi.club">
+  <meta name="twitter:image" content="https://setlistfm.selbi.club/img/preview.png">
 </head>
 <body>
   <div id="background"></div>
   <div id="content">
     <header>
       <div id="bonus-headline" title="Yes, for real.">
-        <span>No Ads</span> • <span>No Sign-Ups</span> • <span>No Tracking</span>
+        <span>No Ads</span> &bull; <span>No Sign-Ups</span> &bull; <span>No Tracking</span>
       </div>
       <div id="headline">
         <a href="https://www.setlist.fm/"><img src="/img/setlistfm-logo.png" alt="setlist.fm"></a>
