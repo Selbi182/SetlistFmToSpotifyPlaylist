@@ -1,11 +1,19 @@
 package spotify.setlist.creator;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
@@ -27,11 +35,6 @@ import spotify.setlist.util.SetlistUtils;
 import spotify.spring.SpringPortConfig;
 import spotify.util.SpotifyLogger;
 import spotify.util.SpotifyUtils;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Component
 public class SetlistCreator {
@@ -102,7 +105,7 @@ public class SetlistCreator {
     long start = System.currentTimeMillis();
 
     // Find the setlist.fm setlist
-    sendMessage(session, "Fetching data from setlist.fm...");
+    SetlistUtils.attemptSendMessage(session, "Fetching data from setlist.fm...");
     Setlist setlist = SetlistFmApi.getSetlist(setlistFmId, setlistFmApiToken);
     String setlistName = setlist.toString();
 
@@ -113,7 +116,7 @@ public class SetlistCreator {
       .filter(TrackSearchResult::hasResult)
       .count();
     if (spotifySearchResults.isEmpty() || searchResultCount == 0 || searchResultCount < totalSetlistSongsCount / 3) {
-      sendMessage(session, "Operation failed.");
+      SetlistUtils.attemptSendMessage(session, "Operation failed.");
       throw new NotFoundException("No songs found: " + setlistFmId);
     }
 
@@ -124,7 +127,7 @@ public class SetlistCreator {
 
     // Search for existing playlists that match the name and tracks
     // If there is a match, return that instead one instead of creating an entirely new playlist
-    sendMessage(session, "Looking for existing playlist...");
+    SetlistUtils.attemptSendMessage(session, "Looking for existing playlist...");
     Optional<Playlist> existingSetlistPlaylist = creationCache.searchForExistingSetlistPlaylist(setlistName, spotifySearchResultsFiltered);
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
@@ -135,22 +138,22 @@ public class SetlistCreator {
     }
 
     // Create the playlist on Spotify with appropriate name, description, and image
-    sendMessage(session, "Creating new playlist...");
+    SetlistUtils.attemptSendMessage(session, "Creating new playlist...");
     String description = SetlistUtils.assembleDescription(setlist);
     Playlist targetPlaylist = playlistService.createPlaylist(setlistName, description, true);
-    sendMessage(session, "Adding tracks to playlist...");
+    SetlistUtils.attemptSendMessage(session, "Adding tracks to playlist...");
     List<Track> tracksToAdd = spotifySearchResultsFiltered.stream().map(TrackSearchResult::getSearchResult).collect(Collectors.toList());
 
     if (!addTracksWithRetry(targetPlaylist, tracksToAdd)) {
       // Failed to add tracks for whatever reason, delete playlist again and return an error
       playlistService.deletePlaylist(targetPlaylist);
-      sendMessage(session, "Failed to add tracks to playlist.");
+      SetlistUtils.attemptSendMessage(session, "Failed to add tracks to playlist.");
       throw new NotFoundException("Failed to add tracks to playlist: " + targetPlaylist.getName());
     }
 
     // Attach image
     if (options.isAttachImage() && !debugMode) {
-      sendMessage(session, "Attaching image...");
+      SetlistUtils.attemptSendMessage(session, "Attaching image...");
       tracksToAdd.stream()
         .filter(t -> SpotifyUtils.getFirstArtistName(t).equals(setlist.getArtistName()))
         .findFirst()
@@ -162,7 +165,7 @@ public class SetlistCreator {
     }
 
     // Log and return the result
-    sendMessage(session, "Almost there...");
+    SetlistUtils.attemptSendMessage(session, "Almost there...");
     long timeTaken = System.currentTimeMillis() - start;
     SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, options, targetPlaylist.getId(), spotifySearchResults, timeTaken, false);
     logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
@@ -203,7 +206,7 @@ public class SetlistCreator {
     List<TrackSearchResult> trackSearchResults = new ArrayList<>();
     for (int i = 0; i < songs.size(); i++) {
       Setlist.Song song = songs.get(i);
-      sendMessage(session, String.format("Searching for the tracks on Spotify... (%d of %d)", i + 1, songs.size()));
+      SetlistUtils.attemptSendMessage(session, String.format("Searching for the tracks on Spotify... (%d of %d)", i + 1, songs.size()));
       boolean notSkipped = !song.isTape() && !song.isMedleyPart()
         || song.isTape() && (song.isCover() ? options.isIncludeTapesForeign() : options.isIncludeTapesMain())
         || song.isMedleyPart() && options.isIncludeMedleys();
@@ -225,6 +228,7 @@ public class SetlistCreator {
     String searchQueryStrict = buildSearchQuery(songNameCore, queryArtistName, true);
     String searchQueryLoose = buildSearchQuery(songNameCore, queryArtistName, false);
 
+    // TODO skip the second API request when it's already obvious the first one got the proper song
     List<Track> searchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryStrict)).getItems());
     List<Track> searchResultsLoose = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryLoose)).getItems());
     List<Track> searchResults = Stream.concat(searchResultsStrict.stream(), searchResultsLoose.stream()).collect(Collectors.toList());
@@ -377,14 +381,6 @@ public class SetlistCreator {
         }
       }
       logger.error("Failed to attach artist image -- " + artist.getName());
-    }
-  }
-  
-  private void sendMessage(WebSocketSession session, String text) {
-    try {
-      session.sendMessage(new TextMessage(text));
-    } catch (IOException e) {
-      e.printStackTrace();
     }
   }
 }

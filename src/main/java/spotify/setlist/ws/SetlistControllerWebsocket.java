@@ -43,20 +43,21 @@ public class SetlistControllerWebsocket implements WebSocketConfigurer {
       String setlistFmId = SetlistUtils.getIdFromSetlistFmUrl(wsConversionRequest.getUrl());
       SetlistCreationOptions options = SetlistUtils.getOptionsFromUrl(wsConversionRequest.getOptions());
 
-      session.sendMessage(new TextMessage("Queued..."));
+      SetlistUtils.attemptSendMessage(session, "Queued...");
       semaphore.acquire();
       // TODO: block and wait here while housekeeping is ongoing
 
-      SetlistCreationResponse setlistCreationResponse1 = setlistCreator.convertSetlistToPlaylist(setlistFmId, options, session);
+      SetlistCreationResponse setlistCreationResponse = setlistCreator.convertSetlistToPlaylist(setlistFmId, options, session);
 
-      String s = objectMapper.writeValueAsString(setlistCreationResponse1);
-      session.sendMessage(new TextMessage(s));
+      String s = objectMapper.writeValueAsString(setlistCreationResponse);
+      SetlistUtils.attemptSendMessage(session, s);
     } catch (Exception e) {
-      e.printStackTrace();
-      session.sendMessage(new TextMessage("ERROR"));
+      SetlistUtils.attemptSendMessage(session, "ERROR");
     } finally {
       semaphore.release();
-      session.close();
+      if (session.isOpen()) {
+        session.close();
+      }
     }
   }
 

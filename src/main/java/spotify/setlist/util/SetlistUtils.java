@@ -1,5 +1,6 @@
 package spotify.setlist.util;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.Normalizer;
 import java.text.SimpleDateFormat;
@@ -11,6 +12,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.util.StringUtils;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.model_objects.specification.Track;
@@ -253,4 +256,25 @@ public class SetlistUtils {
       .orElse(title);
     return purifyString(coreTitle);                   // Default to the full title if no split parts
   }
+
+  /**
+   * Try to send a text message to a websocket session and silently ignore errors on fail with NO logging.
+   *
+   * @param session the {@link WebSocketSession}
+   * @param message the message string to send
+   */
+  public static void attemptSendMessage(WebSocketSession session, String message) {
+    if (session.isOpen()) {
+      try {
+        session.sendMessage(new TextMessage(message));
+      } catch (IOException e) {
+        // >>> Silently drop to avoid log clutter <<<
+        // The idea is that messages are just visual sugar for the user, at the end of the day it's
+        // about the playlists. Non-delivered messages shouldn't cause any issues for the creation
+        // process itself, and if a user decides to close the tab during creation it should still
+        // create the playlist in the background.
+      }
+    }
+  }
 }
+
