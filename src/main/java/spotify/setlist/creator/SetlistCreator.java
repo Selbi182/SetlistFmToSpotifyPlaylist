@@ -225,13 +225,19 @@ public class SetlistCreator {
     String queryArtistName = song.isTape() ? song.getOriginalArtistName() : song.getArtistName();
     String songName = song.getSongName();
     String songNameCore = SetlistUtils.extractCoreTitle(songName);
-    String searchQueryStrict = buildSearchQuery(songNameCore, queryArtistName, true);
-    String searchQueryLoose = buildSearchQuery(songNameCore, queryArtistName, false);
 
-    // TODO skip the second API request when it's already obvious the first one got the proper song
-    List<Track> searchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryStrict)).getItems());
+    String searchQueryLoose = buildSearchQuery(songNameCore, queryArtistName, false);
     List<Track> searchResultsLoose = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryLoose)).getItems());
-    List<Track> searchResults = Stream.concat(searchResultsStrict.stream(), searchResultsLoose.stream()).collect(Collectors.toList());
+    List<Track> searchResults = searchResultsLoose;
+
+    if (!songName.equalsIgnoreCase(songNameCore) || !SetlistUtils.isPureText(songName, queryArtistName)) {
+      // If we already know the search params are not going to cause any headaches,
+      // there's no need to run a second API call to Spotify.
+      // Otherwise, make the second strict request, just in case.
+      String searchQueryStrict = buildSearchQuery(songNameCore, queryArtistName, true);
+      List<Track> searchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryStrict)).getItems());
+      searchResults = Stream.concat(searchResultsStrict.stream(), searchResultsLoose.stream()).collect(Collectors.toList());
+    }
 
     // Direct song match of artist
     if (!searchResults.isEmpty()) {

@@ -248,13 +248,28 @@ public class SetlistUtils {
    * @return the extracted core part
    */
   public static String extractCoreTitle(String title) {
-    String[] parts = title.split("[\\:\\.\\-\\(\\)\\[\\]]"); // Split on colon, dash, or parentheses
+    String[] parts = title.split("[:.\\-()\\[\\]]"); // Split on colon, dash, or parentheses
     String coreTitle = Arrays.stream(parts)
       .map(String::trim)                // Remove extra spaces
       .filter(s -> s.length() > 5)      // Ignore too-short segments
       .reduce((first, second) -> second) // Take the last meaningful part
       .orElse(title);
     return purifyString(coreTitle);                   // Default to the full title if no split parts
+  }
+
+  /**
+   * Checks if the input strings are all pure text. That is, they all only consist of A-Z and spaces.
+   *
+   * @param texts the input strings
+   * @return true if all are pure, false if at least one isn't
+   */
+  public static boolean isPureText(String... texts) {
+    for (String s : texts) {
+      if (!s.matches("[A-Za-z ]+")) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
