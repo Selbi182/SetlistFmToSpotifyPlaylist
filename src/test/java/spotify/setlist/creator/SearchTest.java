@@ -98,7 +98,7 @@ public class SearchTest {
     testPositive("Metallica", "Nothing Else Matters");
     testPositive("Finsterforst", "Ecce Homo");
     testPositive("HotWax", "Rip It Out");
-    testPositive("D-A-D", "Evil Twin");
+    testPositive("D-A-D", "Evil Twin - 2009 - Remaster");
     testPositive("Enter Shikari", "Sorry, You're Not a Winner");
   }
 
