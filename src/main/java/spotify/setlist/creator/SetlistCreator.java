@@ -183,6 +183,7 @@ public class SetlistCreator {
     // Recently, the bot randomly received "Insufficient client scope" exceptions for seemingly no reason.
     // The scope is there and most of the time it works fine, but sometimes it just goes "lol screw you" and fails.
     // This should hopefully mitigate some of these issues, without getting stuck indefinitely.
+    SpotifyUtils.sneakySleep(1000);
     for (int i = PLAYLIST_ADD_MAX_ATTEMPTS; i > 0; i--) {
       try {
         playlistService.addTracksToPlaylist(targetPlaylist, tracksToAdd);
