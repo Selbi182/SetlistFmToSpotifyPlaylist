@@ -245,16 +245,17 @@ public class SetlistUtils {
    * Extract the "core" part of a song title, as best as possible
    *
    * @param title the raw input title
+   * @param purify whether the title should also be purified of special characters
    * @return the extracted core part
    */
-  public static String extractCoreTitle(String title) {
+  public static String extractCoreTitle(String title, boolean purify) {
     String[] parts = title.split("[:.\\-()\\[\\]]"); // Split on colon, dash, or parentheses
     String coreTitle = Arrays.stream(parts)
       .map(String::trim)                // Remove extra spaces
       .filter(s -> s.length() > 5)      // Ignore too-short segments
       .reduce((first, second) -> second) // Take the last meaningful part
       .orElse(title);
-    return purifyString(coreTitle);                   // Default to the full title if no split parts
+    return purify ? purifyString(coreTitle) : coreTitle;
   }
 
   /**

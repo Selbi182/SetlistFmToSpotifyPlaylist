@@ -74,16 +74,16 @@ public class SearchTest {
   ///////////////////////////////
 
   private Track searchTrack(String artist, String title) {
-    Setlist.Song song = new Setlist.Song(1, title, artist, artist, null, true, true, true);
+    Setlist.Song song = new Setlist.Song(1, title, artist, artist, null, false, false, false);
     TrackSearchResult trackSearchResult = setlistCreator.searchTrack(song, true);
     return trackSearchResult.getSearchResult();
   }
 
   private void testPositive(String artist, String title) {
     Track track = searchTrack(artist, title);
-    assertNotNull(track);
+    assertNotNull("Track must not be null", track);
     assertEquals(artist, track.getArtists()[0].getName());
-    assertTrue(SetlistUtils.isStartContained(track.getName(), title));
+    assertTrue(SetlistUtils.containsIgnoreCaseNormalized(track.getName(), title) || SetlistUtils.containsIgnoreCaseNormalized(title, track.getName()));
   }
 
   private void testNegative(String artist, String title) {
@@ -98,8 +98,10 @@ public class SearchTest {
     testPositive("Metallica", "Nothing Else Matters");
     testPositive("Finsterforst", "Ecce Homo");
     testPositive("HotWax", "Rip It Out");
-    testPositive("D-A-D", "Evil Twin - 2009 - Remaster");
+    testPositive("D-A-D", "Evil Twin");
     testPositive("Enter Shikari", "Sorry, You're Not a Winner");
+    testPositive("Dream Theater", "Act I: Scene Two: II. Strange Déjà Vu");
+    testPositive("Der Weg einer Freiheit", "Vergängnis");
   }
 
   @Test

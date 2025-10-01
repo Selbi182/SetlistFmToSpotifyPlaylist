@@ -225,7 +225,7 @@ public class SetlistCreator {
   TrackSearchResult searchTrack(Setlist.Song song, boolean includeCoverOriginals) {
     String queryArtistName = song.isTape() ? song.getOriginalArtistName() : song.getArtistName();
     String songName = song.getSongName();
-    String songNameCore = SetlistUtils.extractCoreTitle(songName);
+    String songNameCore = SetlistUtils.extractCoreTitle(songName, false);
 
     String searchQueryLoose = buildSearchQuery(songNameCore, queryArtistName, false);
     List<Track> searchResultsLoose = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryLoose)).getItems());
@@ -235,7 +235,8 @@ public class SetlistCreator {
       // If we already know the search params are not going to cause any headaches,
       // there's no need to run a second API call to Spotify.
       // Otherwise, make the second strict request, just in case.
-      String searchQueryStrict = buildSearchQuery(songNameCore, queryArtistName, true);
+      String songNameCorePurified = SetlistUtils.extractCoreTitle(songName, true);
+      String searchQueryStrict = buildSearchQuery(songNameCorePurified, queryArtistName, true);
       List<Track> searchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryStrict)).getItems());
       searchResults = Stream.concat(searchResultsStrict.stream(), searchResultsLoose.stream()).collect(Collectors.toList());
     }
@@ -326,9 +327,16 @@ public class SetlistCreator {
       }
     }
 
-    // Contains match (very last attempt)
+    // Contains match purified
     for (Track track : matchingSongs) {
-      if (SetlistUtils.containsIgnoreCase(track.getName(), SetlistUtils.extractCoreTitle(songName))) {
+      if (SetlistUtils.containsIgnoreCase(track.getName(), SetlistUtils.extractCoreTitle(songName, true))) {
+        return TrackSearchResult.closeMatch(song, track);
+      }
+    }
+
+    // Contains match any (very last attempt)
+    for (Track track : matchingSongs) {
+      if (SetlistUtils.containsIgnoreCase(track.getName(), SetlistUtils.extractCoreTitle(songName, false))) {
         return TrackSearchResult.closeMatch(song, track);
       }
     }
