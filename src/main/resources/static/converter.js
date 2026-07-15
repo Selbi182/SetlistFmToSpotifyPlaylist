@@ -322,3 +322,8 @@ function refreshConvertedSetlistsCounter() {
 function numberWithCommas(number) {
   return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
+
+document.querySelector("#announcement .close").onclick = () => {
+  document.querySelector("#announcement").classList.remove("show");
+};

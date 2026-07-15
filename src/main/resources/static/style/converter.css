@@ -47,6 +47,40 @@ body {
 
 /********/
 
+#announcement {
+    max-width: 70%;
+    background: #0008;
+    border-radius: 0.5em;
+    padding: 1em;
+    position: relative;
+    margin: auto auto 0.5em;
+    display: none;
+}
+
+#announcement.show {
+    display: initial;
+}
+
+#announcement div.message {
+    text-wrap: balance;
+    white-space: pre-line;
+    line-height: 1.35;
+}
+
+#announcement div.close {
+    position: absolute;
+    top: 0.5em;
+    right: 0.5em;
+    opacity: 0.5;
+    line-height: 1;
+    cursor: pointer;
+}
+#announcement div.close:hover {
+    opacity: 1;
+}
+
+/********/
+
 #content {
     display: flex;
     flex-direction: column;
@@ -389,5 +423,13 @@ footer > div {
 
     #kofi-button {
         padding-bottom: 3em;
+    }
+
+    #announcement {
+        max-width: 100%;
+        padding-top: 2em;
+    }
+    #announcement .message {
+        font-size: 125%;
     }
 }

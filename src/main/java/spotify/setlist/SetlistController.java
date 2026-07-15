@@ -12,16 +12,19 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 import se.michaelthelin.spotify.exceptions.detailed.NotFoundException;
+import spotify.setlist.creator.misc.AnnouncementManager;
 import spotify.setlist.creator.misc.CounterManager;
 
 @RestController
 public class SetlistController {
   private final CounterManager counterManager;
+  private final AnnouncementManager announcementManager;
 
   private final long bootTime;
 
-  SetlistController(CounterManager counterManager) {
+  SetlistController(CounterManager counterManager, AnnouncementManager announcementManager) {
     this.counterManager = counterManager;
+    this.announcementManager = announcementManager;
     this.bootTime = System.currentTimeMillis();
   }
 
@@ -29,6 +32,9 @@ public class SetlistController {
   public ModelAndView converter(Model model) {
     model.addAttribute("bootTime", bootTime);
     model.addAttribute("playlistCount", counterManager.getSetlistCounterFormatted());
+    if (announcementManager.hasAnnouncement()) {
+      model.addAttribute("announcementMessage", announcementManager.getAnnouncementMessage());
+    }
     return new ModelAndView("converter.html");
   }
 

@@ -34,6 +34,10 @@
   <div id="background"></div>
   <div id="content">
     <header>
+      <div id="announcement" th:classappend="${!#strings.isEmpty(announcementMessage)} ? 'show'">
+        <div class="close" title="Close">&#10005;</div>
+        <div class="message" th:utext="${announcementMessage}"></div>
+      </div>
       <div id="bonus-headline" title="Yes, for real.">
         <span>No Ads</span> &bull; <span>No Sign-Ups</span> &bull; <span>No Tracking</span>
       </div>
