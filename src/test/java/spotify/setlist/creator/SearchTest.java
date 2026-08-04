@@ -102,6 +102,9 @@ public class SearchTest {
     testPositive("Enter Shikari", "Sorry, You're Not a Winner");
     testPositive("Dream Theater", "Act I: Scene Two: II. Strange Déjà Vu");
     testPositive("Der Weg einer Freiheit", "Vergängnis");
+    testPositive("Ghost Bath", "The Silver Flower, Part 2");
+    testPositive("Pendulum", "The Island Part 1");
+    testPositive("Pendulum", "The Island Part II");
   }
 
   @Test

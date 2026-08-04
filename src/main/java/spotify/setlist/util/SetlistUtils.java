@@ -3,6 +3,7 @@ package spotify.setlist.util;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.Normalizer;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.ZoneId;
 import java.util.Arrays;
@@ -15,6 +16,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import com.github.fracpete.romannumerals4j.RomanNumeralFormat;
+
 import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.setlist.data.Setlist;
@@ -24,6 +27,7 @@ public class SetlistUtils {
   private static final String SETLIST_DESCRIPTION = "Generated with: https://setlistfm.selbi.club";
   private static final int MAX_PLAYLIST_NAME_LENGTH = 100;
   private static final Pattern STRING_PURIFICATION_REGEX = Pattern.compile("[^\\p{L}\\p{N}]");
+  private static final Pattern PART_PURIFICATION_REGEX = Pattern.compile("\\b(?:part|pt\\.?)\\s+([ivxlcdm]+|\\d+)\\b", Pattern.CASE_INSENSITIVE);
   private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
   private static final Pattern SETLIST_FM_URL_ID_PATTERN = Pattern.compile(".*-([a-z0-9]{7,9})\\.html$");
 
@@ -36,6 +40,8 @@ public class SetlistUtils {
     "demo",
     "session");
   private static final Pattern ALTERNATE_VERSION_REGEX = Pattern.compile("[-(].*(" + String.join("|", ALTERNATE_VERSION_WORDS) + ")", Pattern.CASE_INSENSITIVE);
+
+  private static final RomanNumeralFormat romanNumeralFormat = new RomanNumeralFormat();
 
   /**
    * Get the setlist ID from a setlist.fm URL.
@@ -120,13 +126,37 @@ public class SetlistUtils {
    * @return a purified, ASCII-friendly title string
    */
   public static String purifyString(String input) {
-    String normalizedSpecialLetters = normalizeSpecialLetters(input);
+    String normalizedPartNumber = normalizePartNumber(input);
+    String normalizedSpecialLetters = normalizeSpecialLetters(normalizedPartNumber);
     String basePurified = STRING_PURIFICATION_REGEX.matcher(normalizedSpecialLetters).replaceAll(" ");
     return Normalizer.normalize(basePurified, Normalizer.Form.NFKD)
       .replaceAll("\\p{M}", "")
       .replaceAll("\\s+", " ")
       .toLowerCase()
       .trim();
+  }
+
+  /**
+   * Checks if the given input string contains any variation of "Part 2", "Pt. II",
+   * or whatever and normalizes that section of the title string to follow these rules:
+   * - lowercase
+   * - never abbreviated
+   * - no dot
+   * - always arabic numerals
+   * Example: "Pt. II" -> "part 2"
+   *
+   * @param input string (usually a song title)
+   * @return the normalized title, unchanged if title doesn't contain a "part" substring
+   */
+  public static String normalizePartNumber(String input) {
+    return PART_PURIFICATION_REGEX.matcher(input).replaceAll(match -> {
+      String number = match.group(1);
+      try {
+        return "part " + romanNumeralFormat.parse(number.toUpperCase());
+      } catch (ParseException e) {
+        return "part " + number;
+      }
+    });
   }
 
   /**

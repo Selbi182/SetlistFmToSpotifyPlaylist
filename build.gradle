@@ -52,6 +52,7 @@ dependencies {
 
     implementation 'org.jsoup:jsoup:1.18.1'
     implementation 'org.apache.commons:commons-text:1.10.0'
+    implementation 'com.github.fracpete:romannumerals4j:0.0.1'
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation "org.springframework.boot:spring-boot-starter-test:$springVersion"
