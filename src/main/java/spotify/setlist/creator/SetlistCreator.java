@@ -132,8 +132,9 @@ public class SetlistCreator {
     if (existingSetlistPlaylist.isPresent()) {
       Playlist existingPlaylist = existingSetlistPlaylist.get();
       long timeTaken = System.currentTimeMillis() - start;
-      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, options, existingPlaylist.getId(), spotifySearchResults, timeTaken, true);
-      logger.info(String.format("Existing setlist requested: %s - %s", existingPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
+      String playlistUrl = SetlistUtils.asPlaylistUrl(existingPlaylist);
+      SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, options, existingPlaylist.getId(), playlistUrl, spotifySearchResults, timeTaken, true);
+      logger.info(String.format("Existing setlist requested: %s - %s", existingPlaylist.getName(), playlistUrl));
       return setlistCreationResponse;
     }
 
@@ -152,7 +153,7 @@ public class SetlistCreator {
     }
 
     // Attach image
-    if (options.isAttachImage() && !debugMode) {
+    if (options.isAttachImage()) {
       SetlistUtils.attemptSendMessage(session, "Attaching image...");
       tracksToAdd.stream()
         .filter(t -> SpotifyUtils.getFirstArtistName(t).equals(setlist.getArtistName()))
@@ -167,11 +168,12 @@ public class SetlistCreator {
     // Log and return the result
     SetlistUtils.attemptSendMessage(session, "Almost there...");
     long timeTaken = System.currentTimeMillis() - start;
-    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, options, targetPlaylist.getId(), spotifySearchResults, timeTaken, false);
-    logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), setlistCreationResponse.getPlaylistUrl()));
+    String playlistUrl = SetlistUtils.asPlaylistUrl(targetPlaylist);
+    SetlistCreationResponse setlistCreationResponse = new SetlistCreationResponse(setlist, options, targetPlaylist.getId(), playlistUrl, spotifySearchResults, timeTaken, false);
+    logger.info(String.format("New setlist created: %s - %s", targetPlaylist.getName(), playlistUrl));
     counterManager.incrementSetlistCounter();
     if (debugMode) {
-      SpotifyCall.execute(spotifyApi.unfollowPlaylist(targetPlaylist.getId()));
+      playlistService.deletePlaylist(targetPlaylist);
       logger.warning("Debug playlist deleted!");
     } else {
       creationCache.addSetlistToCache(setlistName, targetPlaylist.getId());
@@ -233,8 +235,8 @@ public class SetlistCreator {
 
     if (!songName.equalsIgnoreCase(songNameCore) || !SetlistUtils.isPureText(songName, queryArtistName)) {
       // If we already know the search params are not going to cause any headaches,
-      // there's no need to run a second API call to Spotify.
-      // Otherwise, make the second strict request, just in case.
+      // there's no need to do a second API call to Spotify.
+      // Otherwise, make the second search request strict, just in case.
       String songNameCorePurified = SetlistUtils.extractCoreTitle(songName, true);
       String searchQueryStrict = buildSearchQuery(songNameCorePurified, queryArtistName, true);
       List<Track> searchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(searchQueryStrict)).getItems());
@@ -291,7 +293,7 @@ public class SetlistCreator {
       .filter(track -> allowAlternateVersions || !SetlistUtils.containsAlternateVersionWord(songName, track.getName()))
       .filter(track -> isMatchingSongTitle(track.getName(), songName))
       .sorted(Comparator.comparing(t -> t.getAlbum().getReleaseDate()))
-      .collect(Collectors.toList());
+      .toList();
 
     // Where possible, try to find songs from official artist's albums first
     for (Track track : matchingSongs) {

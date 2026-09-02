@@ -3,6 +3,7 @@ package spotify.setlist.ws;
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -11,7 +12,7 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 
 import spotify.setlist.creator.SetlistCreator;
 import spotify.setlist.data.SetlistCreationOptions;
@@ -24,12 +25,12 @@ public class SetlistControllerWebsocket implements WebSocketConfigurer {
   private static final int MAX_CONCURRENT_REQUESTS = 3;
   private final SetlistCreator setlistCreator;
   private final Semaphore semaphore;
-  private final ObjectMapper objectMapper;
+  private final Gson gson;
 
   SetlistControllerWebsocket(SetlistCreator setlistCreator) {
     this.setlistCreator = setlistCreator;
     this.semaphore = new Semaphore(MAX_CONCURRENT_REQUESTS);
-    this.objectMapper = new ObjectMapper();
+    this.gson = new Gson();
   }
 
   @Override
@@ -39,7 +40,7 @@ public class SetlistControllerWebsocket implements WebSocketConfigurer {
 
   private void handle(WebSocketSession session, String payload) throws IOException {
     try {
-      WsConversionRequest wsConversionRequest = objectMapper.readValue(payload, WsConversionRequest.class);
+      WsConversionRequest wsConversionRequest = gson.fromJson(payload, WsConversionRequest.class);
       String setlistFmId = SetlistUtils.getIdFromSetlistFmUrl(wsConversionRequest.getUrl());
       SetlistCreationOptions options = SetlistUtils.getOptionsFromUrl(wsConversionRequest.getOptions());
 
@@ -49,7 +50,7 @@ public class SetlistControllerWebsocket implements WebSocketConfigurer {
 
       SetlistCreationResponse setlistCreationResponse = setlistCreator.convertSetlistToPlaylist(setlistFmId, options, session);
 
-      String s = objectMapper.writeValueAsString(setlistCreationResponse);
+      String s = gson.toJson(setlistCreationResponse);
       SetlistUtils.attemptSendMessage(session, s);
     } catch (Exception e) {
       SetlistUtils.attemptSendMessage(session, "ERROR");
@@ -63,7 +64,7 @@ public class SetlistControllerWebsocket implements WebSocketConfigurer {
 
   class ConvertWsHandler extends TextWebSocketHandler {
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    protected void handleTextMessage(@NonNull WebSocketSession session, TextMessage message) throws Exception {
       String payload = message.getPayload();
       handle(session, payload);
     }
@@ -84,6 +85,10 @@ public class SetlistControllerWebsocket implements WebSocketConfigurer {
 
     public void setUrl(String url) {
       this.url = url;
+    }
+
+    public void setString(String options) {
+      this.options = options;
     }
 
     public void setOptions(String options) {

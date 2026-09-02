@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -64,11 +63,11 @@ public class CreationCache {
     // Housekeeping:
     // Thankfully, the results of getCurrentUsersPlaylists are already in chronological order from newest to oldest,
     // so all we need to do is start at the bottom and delete enough old playlists until we land below the target limit of 10000.
-    int playlistCount = SpotifyCall.execute(spotifyApi.getListOfCurrentUsersPlaylists()).getTotal();
+    int playlistCount = SpotifyCall.execute(spotifyApi.getCurrentUsersPlaylists()).getTotal();
     int playlistOverflowCount = playlistCount - SPOTIFY_PLAYLIST_LIMIT_TARGET;
     if (playlistOverflowCount > 0) {
       logger.warning("Deleting " + playlistOverflowCount + " old playlists!");
-      List<PlaylistSimplified> overflownPlaylists = SpotifyCall.executePaging(spotifyApi.getListOfCurrentUsersPlaylists().offset(SPOTIFY_PLAYLIST_LIMIT_TARGET));
+      List<PlaylistSimplified> overflownPlaylists = SpotifyCall.executePaging(spotifyApi.getCurrentUsersPlaylists().offset(SPOTIFY_PLAYLIST_LIMIT_TARGET));
       if (!overflownPlaylists.isEmpty()) {
         // This part used to be done with the SpotifyOptimizedExecutorService, but for some reason it would lead to a bunch of
         // "Forbidden" and "Insufficient client scope" exceptions. My guess is that Spotify doesn't like it when too many playlists
@@ -109,11 +108,11 @@ public class CreationCache {
           List<String> currentSetlistTrackIds = setlistTracks.stream()
             .map(TrackSearchResult::getSearchResult)
             .map(Track::getId)
-            .collect(Collectors.toList());
+            .toList();
           List<String> existingPlaylistTrackIds = playlistTracks.stream()
             .map(PlaylistTrack::getItem)
             .map(IPlaylistItem::getId)
-            .collect(Collectors.toList());
+            .toList();
           if (currentSetlistTrackIds.equals(existingPlaylistTrackIds)) {
             return Optional.of(playlist);
           }

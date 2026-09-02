@@ -19,6 +19,7 @@ import org.springframework.web.socket.WebSocketSession;
 import com.github.fracpete.romannumerals4j.RomanNumeralFormat;
 
 import se.michaelthelin.spotify.enums.AlbumType;
+import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.setlist.data.Setlist;
 import spotify.setlist.data.SetlistCreationOptions;
@@ -321,6 +322,16 @@ public class SetlistUtils {
         // create the playlist in the background.
       }
     }
+  }
+
+  /**
+   * Get openable Spotify URL string for playlist.
+   *
+   * @param playlist the Spotify playlist
+   * @return the openable Spotify playlist URL string
+   */
+  public static String asPlaylistUrl(Playlist playlist) {
+    return "https://open.spotify.com/playlist/" + playlist.getId();
   }
 }
 
