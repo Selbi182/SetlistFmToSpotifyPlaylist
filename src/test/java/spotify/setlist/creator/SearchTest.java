@@ -1,18 +1,16 @@
 package spotify.setlist.creator;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import spotify.SetlistFmToSpotifyPlaylist;
@@ -30,7 +28,6 @@ import spotify.spring.SpringPortConfig;
 import spotify.util.SpotifyLogger;
 import spotify.util.SpotifyOptimizedExecutorService;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = {
   SpotifyApiConfig.class,
   SpotifyApiManager.class,
@@ -45,7 +42,7 @@ import spotify.util.SpotifyOptimizedExecutorService;
   SetlistFmToSpotifyPlaylist.SetlistFmBotSpotifySettings.class
 })
 @EnableConfigurationProperties
-public class SearchTest {
+class SearchTest {
 
   @Autowired
   private SetlistCreator setlistCreator;
@@ -55,8 +52,8 @@ public class SearchTest {
 
   private static boolean initialized = false;
 
-  @Before
-  public void initializeTests() {
+  @BeforeEach
+  void initializeTests() {
     if (!initialized) {
       login();
       initialized = true;
@@ -74,14 +71,14 @@ public class SearchTest {
   ///////////////////////////////
 
   private Track searchTrack(String artist, String title) {
-    Setlist.Song song = new Setlist.Song(1, title, artist, artist, null, false, false, false);
+    Setlist.Song song = new Setlist.Song(1, title, artist, artist, "", false, false, false);
     TrackSearchResult trackSearchResult = setlistCreator.searchTrack(song, true);
     return trackSearchResult.getSearchResult();
   }
 
   private void testPositive(String artist, String title) {
     Track track = searchTrack(artist, title);
-    assertNotNull("Track must not be null", track);
+    assertNotNull(track, "Track must not be null");
     assertEquals(artist, track.getArtists()[0].getName());
     assertTrue(SetlistUtils.containsIgnoreCaseNormalized(track.getName(), title) || SetlistUtils.containsIgnoreCaseNormalized(title, track.getName()));
   }
@@ -94,7 +91,7 @@ public class SearchTest {
   ///////////////////////////////
 
   @Test
-  public void searchTracksPositiveTest() {
+  void searchTracksPositiveTest() {
     testPositive("Metallica", "Nothing Else Matters");
     testPositive("Finsterforst", "Ecce Homo");
     testPositive("HotWax", "Rip It Out");
@@ -108,10 +105,9 @@ public class SearchTest {
   }
 
   @Test
-  public void searchTracksNegativeTest() {
+  void searchTracksNegativeTest() {
     testNegative("Metallica", "some metallica song that doesn't exist lol");
     testNegative("DragonForce", "E.P.M."); // real song, but not available on Spotify
   }
 
 }
-

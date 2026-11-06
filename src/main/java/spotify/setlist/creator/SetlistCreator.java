@@ -111,7 +111,7 @@ public class SetlistCreator {
 
     // Search for each song on Spotify
     List<TrackSearchResult> spotifySearchResults = findSongsOnSpotify(setlist, options, session);
-    int totalSetlistSongsCount = setlist.getSongs().size();
+    int totalSetlistSongsCount = setlist.songs().size();
     long searchResultCount = spotifySearchResults.stream()
       .filter(TrackSearchResult::hasResult)
       .count();
@@ -153,10 +153,10 @@ public class SetlistCreator {
     }
 
     // Attach image
-    if (options.isAttachImage()) {
+    if (options.attachImage()) {
       SetlistUtils.attemptSendMessage(session, "Attaching image...");
       tracksToAdd.stream()
-        .filter(t -> SpotifyUtils.getFirstArtistName(t).equals(setlist.getArtistName()))
+        .filter(t -> SpotifyUtils.getFirstArtistName(t).equals(setlist.artistName()))
         .findFirst()
         .ifPresent(t -> {
           ArtistSimplified artist = t.getArtists()[0];
@@ -178,6 +178,7 @@ public class SetlistCreator {
     } else {
       creationCache.addSetlistToCache(setlistName, targetPlaylist.getId());
     }
+    SpotifyUtils.sneakySleep(2000); // allow Spotify to clean up its cache before showing playlist
     return setlistCreationResponse;
   }
 
@@ -205,16 +206,16 @@ public class SetlistCreator {
     // This was originally done using SpotifyOptimizedExecutorService,
     // but ironically enough, it is significantly faster in a simple for-loop,
     // as it's less likely to cause 429 Too Many Requests errors this way.
-    List<Setlist.Song> songs = setlist.getSongs();
+    List<Setlist.Song> songs = setlist.songs();
     List<TrackSearchResult> trackSearchResults = new ArrayList<>();
     for (int i = 0; i < songs.size(); i++) {
       Setlist.Song song = songs.get(i);
       SetlistUtils.attemptSendMessage(session, String.format("Searching for the tracks on Spotify... (%d of %d)", i + 1, songs.size()));
-      boolean notSkipped = !song.isTape() && !song.isMedleyPart()
-        || song.isTape() && (song.isCover() ? options.isIncludeTapesForeign() : options.isIncludeTapesMain())
-        || song.isMedleyPart() && options.isIncludeMedleys();
+      boolean notSkipped = !song.tape() && !song.medleyPart()
+        || song.tape() && (song.cover() ? options.includeTapesForeign() : options.includeTapesMain())
+        || song.medleyPart() && options.includeMedleys();
       if (notSkipped) {
-        TrackSearchResult trackSearchResult = searchTrack(song, options.isIncludeCoverOriginals());
+        TrackSearchResult trackSearchResult = searchTrack(song, options.includeCoverOriginals());
         trackSearchResults.add(trackSearchResult);
       } else {
         trackSearchResults.add(TrackSearchResult.skipped(song));
@@ -225,8 +226,8 @@ public class SetlistCreator {
 
   // visible for testing
   TrackSearchResult searchTrack(Setlist.Song song, boolean includeCoverOriginals) {
-    String queryArtistName = song.isTape() ? song.getOriginalArtistName() : song.getArtistName();
-    String songName = song.getSongName();
+    String queryArtistName = song.tape() ? song.originalArtistName() : song.artistName();
+    String songName = song.songName();
     String songNameCore = SetlistUtils.extractCoreTitle(songName, false);
 
     String searchQueryLoose = buildSearchQuery(songNameCore, queryArtistName, false);
@@ -257,8 +258,8 @@ public class SetlistCreator {
     }
 
     // Cover originals
-    if (song.isCover() && includeCoverOriginals) {
-      String originalArtistName = song.getOriginalArtistName();
+    if (song.cover() && includeCoverOriginals) {
+      String originalArtistName = song.originalArtistName();
       String fallbackCoverSearchQueryStrict = buildSearchQuery(songName, originalArtistName, true);
       String fallbackCoverSearchQueryLoose = buildSearchQuery(songName, originalArtistName, false);
       List<Track> fallbackCoverSearchResultsStrict = Arrays.asList(SpotifyCall.execute(spotifyApi.searchTracks(fallbackCoverSearchQueryStrict)).getItems());
@@ -356,10 +357,9 @@ public class SetlistCreator {
 
   public boolean isApproximateMatch(String query, String title) {
     int maxDistance = (int) Math.ceil(query.length() * 0.2); // Allow ~20% difference
-    LevenshteinDistance levenshtein = new LevenshteinDistance();
     String normalizedQuery = SetlistUtils.purifyString(query);
     String normalizedTitle = SetlistUtils.purifyString(title);
-    int distance = levenshtein.apply(normalizedQuery, normalizedTitle);
+    int distance = LevenshteinDistance.getDefaultInstance().apply(normalizedQuery, normalizedTitle);
     return distance <= maxDistance;
   }
 

@@ -86,18 +86,18 @@ public class SetlistUtils {
    * @return the name
    */
   public static String assemblePlaylistName(Setlist setlist) {
-    String year = String.valueOf(setlist.getEventDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate().getYear());
+    String year = String.valueOf(setlist.eventDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate().getYear());
 
     final String tourOrVenue;
     if (setlist.hasTour()) {
-      tourOrVenue = setlist.getTourName().contains(year)
-        ? setlist.getTourName().replaceAll("\\s+", " ").strip()
-        : String.format("%s (%s)", setlist.getTourName(), year);
+      tourOrVenue = setlist.tourName().contains(year)
+        ? setlist.tourName().replaceAll("\\s+", " ").strip()
+        : String.format("%s (%s)", setlist.tourName(), year);
     } else {
       tourOrVenue = String.format("%s (%s)", setlist.venueAndCity(), year);
     }
 
-    String setlistName = String.format("%s [Setlist] // %s", setlist.getArtistName(), tourOrVenue);
+    String setlistName = String.format("%s [Setlist] // %s", setlist.artistName(), tourOrVenue);
     return setlistName.substring(0, Math.min(setlistName.length(), MAX_PLAYLIST_NAME_LENGTH));
   }
 
@@ -110,7 +110,7 @@ public class SetlistUtils {
    */
   public static String assembleDescription(Setlist setlist) {
     if (setlist.hasTour()) {
-      return String.format("%s (%s) // %s", setlist.venueAndCity(), DATE_FORMAT.format(setlist.getEventDate()), SETLIST_DESCRIPTION);
+      return String.format("%s (%s) // %s", setlist.venueAndCity(), DATE_FORMAT.format(setlist.eventDate()), SETLIST_DESCRIPTION);
     }
     return SETLIST_DESCRIPTION;
   }

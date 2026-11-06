@@ -66,7 +66,7 @@ public class SetlistFmApi {
               ? songInfo.get("cover").getAsJsonObject().get("name").getAsString()
               : artistName;
 
-            String info = songInfo.has("info") ? songInfo.get("info").getAsString() : null;
+            String info = songInfo.has("info") ? songInfo.get("info").getAsString() : "";
 
             Setlist.Song setlistSong = new Setlist.Song(index, medleyPartOrSingleSong, artistName, originalArtist, info, isTape, isCover, isMedleyPart);
             setlistSongs.add(setlistSong);
