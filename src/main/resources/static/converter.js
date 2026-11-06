@@ -232,12 +232,16 @@ function initPage() {
   }
 
   // Setup one-click addon functionality via the ?auto URL parameter
-  const urlParams = new URLSearchParams(window.location.search);
-  const autoSetlistUrl = urlParams.get('auto');
-  if (autoSetlistUrl && isValidSetlistUrl(autoSetlistUrl)) {
-    inputField.value = autoSetlistUrl;
-    verifyUrl(autoSetlistUrl);
-    submitButton.click();
+  const url = new URL(window.location.href);
+  const autoSetlistUrl = url.searchParams.get('auto');
+  if (autoSetlistUrl) {
+    url.searchParams.delete('auto');
+    history.replaceState(null, '', url);
+    if (isValidSetlistUrl(autoSetlistUrl)) {
+      inputField.value = autoSetlistUrl;
+      verifyUrl(autoSetlistUrl);
+      submitButton.click();
+    }
   }
 }
 
